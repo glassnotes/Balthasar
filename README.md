@@ -3,7 +3,7 @@ A Python package for generating and manipulating mutually unbiased bases.
 
 ## Dependencies
 
-- PyniteFields (available at github.com/glassnotes/PyniteFields).
+- [PyniteFields](https://github.com/glassnotes/PyniteFields)
 - numpy
 
 ===================================================
@@ -17,7 +17,7 @@ python3 setup.py install
 
 ## Usage
 
-To generate a set of MUBs in dimension p^n is done by providing a finite field in this dimension:
+To generate a set of MUBs in dimension _p_<sup>_n_</sup> is done by providing a finite field in this dimension:
 ```
 from pynitefields import *
 from balthasar import *
@@ -38,7 +38,7 @@ dim8_mubs.print()
 
 MUB operators can be viewed as living on rays in discrete phase space. Thus, one can provide a set 
 of such rays to the constructor. If no set of rays is provided, the MUBs will be built from the set
-of Desarguesian curves (linear curves) of the form $$ \beta = \lambda \alpha $$.
+of Desarguesian curves (linear curves). 
 ```
 some_mubs = MUBs(gf, rays)
 ```
