@@ -1,16 +1,21 @@
 # Balthasar
-A Python package for generating and manipulating mutually unbiased bases
+A Python package for generating and manipulating mutually unbiased bases.
 
-Dependencies
+## Dependencies
 
-===================================================
-
-To run the routines in Balthasar, you will need to have installed my PyniteFields package
-(available at github.com/glassnotes/PyniteFields).
-
-You will also need numpy.
+- PyniteFields (available at github.com/glassnotes/PyniteFields).
+- numpy
 
 ===================================================
+
+## Installation
+In the main directory of the program, you can install Balthasar into your version of Python 3 using the following command:
+
+```
+python3 setup.py install
+```
+
+## Usage
 
 To generate a set of MUBs in dimension p^n is done by providing a finite field in this dimension:
 ```
