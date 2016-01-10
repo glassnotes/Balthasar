@@ -1,5 +1,5 @@
 # Balthasar
-A Python package for generating and manipulating mutually unbiased bases.
+A Python package for generating and manipulating mutually unbiased bases. Balthasar is currently under development and is as a result may not be fully functional. If you find any bugs, don't hesitate to contact me at odimatte@uwaterloo.ca.
 
 ## Dependencies
 
@@ -42,4 +42,12 @@ of Desarguesian curves (linear curves).
 ```
 some_mubs = MUBs(gf, rays)
 ```
+=============================================
 
+### Future features
+- Explicit matrix forms of all operators using numpy
+- Computation of mutually unbiased vectors from the operator table 
+- Implementation of unitary transformations of the MUB table and associated curves
+- Computation and transformations of associated Latin squares
+- Coarse graining for incomplete tomography (research in progress!) 
+- Wigner functions, point operators, and plotting
