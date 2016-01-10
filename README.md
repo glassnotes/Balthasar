@@ -17,7 +17,7 @@ python3 setup.py install
 
 ## Usage
 
-To generate a set of MUBs in dimension _p_<sup>_n_</sup> is done by providing a finite field in this dimension:
+To generate a set of MUBs in dimension _p_<sup>_n_</sup>, you must simply provide a finite field in this dimension:
 ```
 from pynitefields import *
 from balthasar import *
