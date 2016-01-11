@@ -13,7 +13,7 @@ class LatinSquare():
         square - The actual square (stored as a numpy array)
     """
 
-    def __init__(self, f, curve):
+    def __init__(self, curve, f):
         # Set some obvious parameters
         self.p = f.p
         self.n = f.n
