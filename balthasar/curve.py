@@ -3,7 +3,7 @@ from pynitefields import *
 class Curve():
     """ Class to hold all points in a curve.
     """
-    def __init__(self, field, coefs, reverse=False):
+    def __init__(self, coefs, field, reverse=False):
         """
         Parameters:
         """
@@ -30,6 +30,13 @@ class Curve():
                 self.points.append( (field.evaluate(coefs, el), el) )
 
 
+    def __getitem__(self, index):
+        if index < len(self.points):
+            return self.points[index]
+        else:
+            print("Error, element out of bounds.")
+        
+
     def __iter__(self):                                                                                                                           
         """ Allow the user to iterate over the curve point by point """
         return iter(self.points)
@@ -46,13 +53,19 @@ class Curve():
                         continue
                     if self.coefs[i] == 1 and i == 0: # Only print 1 if it's the constant
                         print(str(self.coefs[i]), end="")
+                        continue
+                    print(str(self.coefs[i]), end="")
                 else: # Field elements
                     if self.coefs[i] == self.field[0]: # Ignore 0 terms
                         continue
                     if (self.coefs[i].prim_power == 1):
-                        print("s", end="")
+                        if self.field.n > 1:
+                            print("s", end="")
                     else:
-                        print("s" + str(self.coefs[i].prim_power), end="")
+                        if self.field.n > 1:
+                            print("s" + str(self.coefs[i].prim_power), end="")
+                        else:
+                            print(str(self.coefs[i].prim_power), end="")
 
                 if i > 0:
                     if i == 1:

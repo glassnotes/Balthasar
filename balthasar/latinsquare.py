@@ -22,12 +22,13 @@ class LatinSquare():
         self.curve = curve
 
         self.square = np.zeros((self.dim, self.dim), dtype=np.int)
-        for i in range(self.dim):
-            for j in range(self.dim):
-                if self.n > 1:
-                    self.square[i][j] = (self.field[j] + self.field.evaluate(self.curve, self.field[i])).prim_power
-                else:
-                    self.square[i][j] = (self.field[j] + self.field.evaluate(self.curve, self.field[i])).exp_coefs[0]
+
+        for row in range(self.dim):
+            for column in range(self.dim):
+                row_el = curve[row][1]
+                col_el = curve[column][0]
+
+                self.square[row][column] = (row_el + col_el).prim_power
 
 
     def print(self):
