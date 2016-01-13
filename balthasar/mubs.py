@@ -38,9 +38,9 @@ class MUBs():
 
         self.curves = []
         if curves == []: # Default to Desarguesian curves
-            self.curves.append(Curve(self.field, [0, f[0]], True)) # Horizontal curve alpha = 0
+            self.curves.append(Curve([0, f[0]], self.field, True)) # Horizontal curve alpha = 0
             for el in self.field: # Rest of the curves
-                self.curves.append(Curve(self.field, [0, el]))
+                self.curves.append(Curve([0, el], self.field))
         else: # Curves specified by user
             if self.verify_curves(curves) == True:
                 self.curves = curves 
@@ -49,11 +49,12 @@ class MUBs():
         self.table = []
     
         for curve in self.curves:
-            curve.print()
             row = []
 
             for point in curve:
                 op= []
+                if point[0] == self.field[0] and point[1] == self.field[0]:
+                    continue
                 z = point[0].exp_coefs # Expansion of the Z part
                 x = point[1].exp_coefs # Expansion of the X part
                 for idx in range(len(z)):
