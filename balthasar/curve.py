@@ -2,6 +2,13 @@ from pynitefields import *
 
 class Curve():
     """ Class to hold all points in a curve.
+        Parameters:
+        field - The finite field in which is curve is defined
+        coefs - Coe
+        form - beta or alpha, tells whether to do the curve as beta = f(alpha) or alpha = f(beta).
+               By default, we use the beta form, beta = f(alpha).
+        is_ray - A Boolean which tells you whether the curve passes through the point (0, 0) or not
+        points - A list of tuples of field elements which are the points of this curve over the field.
     """
     def __init__(self, coefs, field, reverse=False):
         """
@@ -37,7 +44,7 @@ class Curve():
             print("Error, element out of bounds.")
         
 
-    def __iter__(self):                                                                                                                           
+    def __iter__(self):
         """ Allow the user to iterate over the curve point by point """
         return iter(self.points)
 

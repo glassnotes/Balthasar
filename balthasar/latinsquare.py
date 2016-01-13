@@ -9,16 +9,14 @@ class LatinSquare():
         n - Power of prime 
         dim - The dimension of the system p^n
         field - The finite field used to build this square 
-        curve - Coefficients of the curve in the field 
+        curve - An object of type Curve stored in the field
         square - The actual square (stored as a numpy array)
     """
 
-    def __init__(self, curve, f):
+    def __init__(self, curve):
         # Set some obvious parameters
-        self.p = f.p
-        self.n = f.n
-        self.dim = f.dim
-        self.field = f # Keep a copy of the finite field to do math!
+        self.field = curve.field # Keep a copy of the finite field to do math!
+        self.dim = self.field.dim
         self.curve = curve
 
         self.square = np.zeros((self.dim, self.dim), dtype=np.int)
@@ -27,7 +25,6 @@ class LatinSquare():
             for column in range(self.dim):
                 row_el = curve[row][1]
                 col_el = curve[column][0]
-
                 self.square[row][column] = (row_el + col_el).prim_power
 
 
