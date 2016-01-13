@@ -1,4 +1,5 @@
 from pynitefields import *
+from balthasar.curve import Curve 
 
 class MUBs():
     """ Class to hold a complete set of mutually unbiased bases
@@ -36,38 +37,45 @@ class MUBs():
         # Desarguesian bundle.
 
         self.curves = []
-        if curves == []:
-            self.curves = [[0, self.field[i]] for i in range(self.dim)] 
-        else:
-            self.curves = curves 
+        if curves == []: # Default to Desarguesian curves
+            self.curves.append(Curve(self.field, [0, f[0]], True)) # Horizontal curve alpha = 0
+            for el in self.field: # Rest of the curves
+                self.curves.append(Curve(self.field, [0, el]))
+        else: # Curves specified by user
+            if self.verify_curves(curves) == True:
+                self.curves = curves 
 
         # Build the operator table
         self.table = []
-
     
-        for curve_idx in range(len(self.curves) + 1):
+        for curve in self.curves:
+            curve.print()
             row = []
-            if curve_idx == len(self.curves): # Append the horizontal rows (alpha = 0)
-                ordered_pairs = [(self.field[0], self.field[i]) for i in range(1, self.field.dim)]
-            else: # Evaluate the function - don't need to consider the (0, 0) case
-                ordered_pairs = [(el, self.field.evaluate(self.curves[curve_idx], el)) for el in self.field][1:]
 
-            for pair in ordered_pairs:
-                operator = []
-                z_coords = pair[0].exp_coefs
-                x_coords = pair[1].exp_coefs
-                for qubit_idx in range(len(z_coords)):
-                    if z_coords[qubit_idx] == 0 and x_coords[qubit_idx] == 0:
-                        operator.append("1")
-                    elif z_coords[qubit_idx] == 0 and x_coords[qubit_idx] != 0:
-                        operator.append("X" + ("" if x_coords[qubit_idx] == 1 else str(x_coords[qubit_idx])))
-                    elif z_coords[qubit_idx] != 0 and x_coords[qubit_idx] == 0:
-                        operator.append("Z" + ("" if z_coords[qubit_idx] == 1 else str(z_coords[qubit_idx])))
+            for point in curve:
+                op= []
+                z = point[0].exp_coefs # Expansion of the Z part
+                x = point[1].exp_coefs # Expansion of the X part
+                for idx in range(len(z)):
+                    if z[idx] == 0 and x[idx] == 0:
+                        op.append("1")
+                    elif z[idx] == 0 and x[idx] != 0:
+                        op.append("X" + ("" if x[idx] == 1 else str(x[idx])))
+                    elif z[idx] != 0 and x[idx] == 0:
+                        op.append("Z" + ("" if z[idx] == 1 else str(z[idx])))
                     else:
-                        operator.append("Z" + ("" if z_coords[qubit_idx] == 1 else str(z_coords[qubit_idx])) + "X" + ("" if x_coords[qubit_idx] == 1 else str(x_coords[qubit_idx])))
-                row.append(operator)
+                        op.append("Z" + ("" if z[idx] == 1 else str(z[idx])) + "X" + ("" if x[idx] == 1 else str(x[idx])))
+                row.append(op)
+
             self.table.append(row)
 
+
+    def verify_curves(self, curves):
+        # TODO check that the properties of the provided curves are valid
+        if len(curves) != self.dim + 1:
+            print("Error, not enough curves provided.")
+            return False
+        return True
 
 
     def print(self):
