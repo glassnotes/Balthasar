@@ -52,7 +52,7 @@ class Curve():
     def print(self, as_points = False):
         if as_points == True: # Print the curve as a list of points
             for point in self.points:
-                print(str(point[0].prim_power) + ", " + str(point[1].prim_power))
+                print(str(point[0].prim_power) + ", " + str(point[1].prim_power), end = "\t")
         else: # Print the curve as a polynomial
             for i in range(len(self.coefs)):
                 if type(self.coefs[i]) == int: # Integers
