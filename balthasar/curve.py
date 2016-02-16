@@ -54,16 +54,17 @@ class Curve():
             for point in self.points:
                 print(str(point[0].prim_power) + ", " + str(point[1].prim_power), end = "\t")
         else: # Print the curve as a polynomial
+            print(self.form + "(x) = ", end = "") 
             for i in range(len(self.coefs)):
                 if type(self.coefs[i]) == int: # Integers
-                    if self.coefs[i] == 0: # Ignore 0 terms
+                    if self.coefs[i] == 0: # Ignore 0 terms unless the curve is 0
                         continue
                     if self.coefs[i] == 1 and i == 0: # Only print 1 if it's the constant
                         print(str(self.coefs[i]), end="")
                         continue
                     print(str(self.coefs[i]), end="")
                 else: # Field elements
-                    if self.coefs[i] == self.field[0]: # Ignore 0 terms
+                    if self.coefs[i] == self.field[0]: # Ignore 0 terms unless curve is 0
                         continue
                     if (self.coefs[i].prim_power == 1):
                         if self.field.n > 1:
