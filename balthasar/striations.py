@@ -12,28 +12,54 @@ class Striations():
     """
     def __init__(self, field):
         self.field = field
+        self.dim = field.dim
         self.striations = []
 
-        # Handle the horizontal striation first
-        horizontal_striation = []
-        for intercept in field:
-            curve = Curve([intercept, self.field[0]], self.field, True)
-            horizontal_striation.append(curve)
-        self.striations.append(horizontal_striation)
-
-        # Take care of the rest of the striations 
+        # Striations of the form beta = lambda alpha + gamma
+        # Do these first so that the slope lambda corresponds to the list element 
         for slope in field:
             new_striation = []
             for intercept in field:
                     curve = Curve([intercept, slope], self.field)
                     new_striation.append(curve)
             self.striations.append(new_striation)
+
+        # Handle the vertical striation (infinite slope) last - easily accessible as striation -1
+        horizontal_striation = []
+        for intercept in field:
+            curve = Curve([intercept, self.field[0]], self.field, True)
+            horizontal_striation.append(curve)
+        self.striations.append(horizontal_striation)
+
     
         # Store the rays as a set for safekeeping
         rays = [s[0] for s in self.striations]
 
+        
+
+    def __iter__(self):
+        """ Allow the user to iterate through all the striations. """
+        return iter(self.striations)
+
+
+    def __getitem__(self, index):
+        """ Grab a striation. Striation -1 corresponds to the horizontal striation,
+            all other striations indicated by there slope as a power of the 
+            primitive field element.
+        """
+        if (index >= -1) and (index <= self.dim + 1):
+            return self.striations[index]
+        else:
+            print("Error, element out of bounds.")
+
+
+    def get_rays(self):
+        """ Get the set of rays only. """
+        return [s[0] for s in self.striations]
+
 
     def print(self, as_points = False):
+        """ Print out all the striations either as equations or as sets of points. """
         print("============================")
         for s in self.striations:
             print("Ray: ")
