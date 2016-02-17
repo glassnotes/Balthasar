@@ -1,5 +1,7 @@
 from pynitefields import *
 from balthasar.curve import Curve 
+import numpy as np
+from functools import reduce
 
 class MUBs():
     """ Class to hold a complete set of mutually unbiased bases
@@ -10,6 +12,7 @@ class MUBs():
         n - The number of particles
         dim - The dimension of the system p^n
         table - The table of operators
+        matrix_table - The table of operators in explicit matrix form
         curves - The set of curves used to construct the table
 
         An operator in the MUB table is represented as a monomial of the
@@ -38,19 +41,27 @@ class MUBs():
 
         self.curves = []
         if curves == []: # Default to Desarguesian curves
-            self.curves.append(Curve([0, f[0]], self.field, True)) # Horizontal curve alpha = 0
             for el in self.field: # Rest of the curves
                 self.curves.append(Curve([0, el], self.field))
+            self.curves.append(Curve([0, f[0]], self.field, True)) # Vertical curve last (alpha = 0)
         else: # Curves specified by user
             if self.verify_curves(curves) == True:
                 self.curves = curves 
 
-        # Build the operator table
+        # Build the operator tables
         self.table = []
+        self.matrix_table = []
+
+        # Build the operator table in matrix form at the same time
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
+        ZX = - np.dot(Z, X)
+        I = np.identity(2)
+        matrix_dict = {"X" : X, "Z" : Z, "ZX" : ZX, "1" : I} # Easy access
     
         for curve in self.curves:
             row = []
-
+            matrix_row = []
             for point in curve:
                 op= []
                 if point[0] == self.field[0] and point[1] == self.field[0]:
@@ -66,9 +77,69 @@ class MUBs():
                         op.append("Z" + ("" if z[idx] == 1 else str(z[idx])))
                     else:
                         op.append("Z" + ("" if z[idx] == 1 else str(z[idx])) + "X" + ("" if x[idx] == 1 else str(x[idx])))
-                row.append(op)
 
-            self.table.append(row)
+                row.append(op)
+                matrix_op = reduce(np.kron, (matrix_dict[i] for i in op)) # Compute matrix product
+                matrix_row.append(matrix_op) 
+
+            self.table.append(row) # Add to the tables
+            self.matrix_table.append(matrix_row)
+
+            
+
+    def compute_generators(self):
+        """ Compute the generators for each ray in the MUB table.
+            Store two versions, one for the letter version and another for the matrices.
+        """ 
+        generators_operator = []
+        generators_matrix = []
+        
+        for row_idx in range(len(self.table)):  # Compute for all rows of the table
+            next_gen_op = self.table[row_idx][:2] # Collect first two elements
+            next_gen_mat = self.matrix_table[row_idx][:2]
+            
+            num_gen = 2 # Current number of generators 
+            next_idx = 2 # Index of next operator to check
+            # Keep track of all possible products and add to this as we compute more generators
+            generator_products = [next_gen_mat[0], next_gen_mat[1], np.dot(next_gen_mat[0], next_gen_mat[1])]
+
+            while num_gen < self.field.n: # Keep going until we have n generators
+                next_op = self.matrix_table[next_idx]
+                next_products = [] 
+                
+                equality_test_inner = [np.equal(next_op, gen_product) for gen_product in generator_products]
+                equality_test_outer = [np.all(eq_test) for eq_test in equality_test_inner] 
+                if any(equality_test_outer): # Invalid
+                    next_idx += 1
+                    continue # Increment and move on to next possibility
+
+                fail = False
+                for product in generator_products:
+                    new_product = np.dot(next_op, product)
+
+                    equality_test_inner = [np.equal(new_product, gen_product) for gen_product in generator_products]
+                    equality_test_outer = [np.all(eq_test) for eq_test in equality_test_inner] 
+
+                    if any(equality_test_outer):
+                        fail = True
+                        break
+                    else:
+                        next_products.append(new_product)
+
+                if fail:
+                    next_idx += 1 # Move to the next one
+                else: # Found a valid choice for next generator, add it and move to next case
+                    generator_products.extend(next_products)
+                    generator_products.append(next_op)
+                    next_gen_op.append(self.table[row_idx][next_idx]) 
+                    next_gen_mat.append(self.matrix_table[row_idx][next_idx]) 
+                    num_gen += 1
+                    next_idx += 1
+            
+            generators_operator.append(next_gen_op) 
+            generators_matrix.append(next_gen_mat) 
+
+        return generators_operator, generators_matrix
 
 
     def verify_curves(self, curves):
@@ -79,9 +150,20 @@ class MUBs():
         return True
 
 
-    def print(self):
-        for row in self.table:
-            for operator in row:
-                print(" ".join(operator) + "\t\t", end = "")
-            print("\n")
+    def print(self, matrix_form = False):
+        if matrix_form: # Print as matrices
+            np.set_printoptions(threshold=np.nan, suppress=True)
+            for i in range(len(self.matrix_table)):
+                for operator in self.table[i]:
+                    print(" ".join(operator) + "\t\t", end = "")
+                print("\n")
+                for operator in self.matrix_table[i]:
+                    print(operator) 
+                    print("\n")
+                print("\n")
+        else: # Print as a table
+            for row in self.table:
+                for operator in row:
+                    print(" ".join(operator) + "\t\t", end = "")
+                print("\n")
 

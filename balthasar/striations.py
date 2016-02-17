@@ -24,14 +24,14 @@ class Striations():
                     new_striation.append(curve)
             self.striations.append(new_striation)
 
-        # Handle the vertical striation (infinite slope) last - easily accessible as striation -1
+        # Handle the vertical striation (infinite slope) last
+        # This way it is easily accessible as striation -1
         horizontal_striation = []
         for intercept in field:
             curve = Curve([intercept, self.field[0]], self.field, True)
             horizontal_striation.append(curve)
         self.striations.append(horizontal_striation)
 
-    
         # Store the rays as a set for safekeeping
         rays = [s[0] for s in self.striations]
 
@@ -69,7 +69,3 @@ class Striations():
                 curve.print(as_points)
                 print("")
             print("============================")
-        
-
-
-            
