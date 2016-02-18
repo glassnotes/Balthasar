@@ -105,37 +105,22 @@ class MUBs():
 
             while num_gen < self.field.n: # Keep going until we have n generators
                 next_op = self.matrix_table[next_idx]
-                next_products = [] 
                 
-                equality_test_inner = [np.equal(next_op, gen_product) for gen_product in generator_products]
-                equality_test_outer = [np.all(eq_test) for eq_test in equality_test_inner] 
-                if any(equality_test_outer): # Invalid
+                # Check if the new matrix is in the span of the previous ones
+                equality_test = [np.equal(next_op, gen_prod).all() for gen_prod in generator_products]
+
+                if any(equality_test): # Invalid, increment and move on
                     next_idx += 1
-                    continue # Increment and move on to next possibility
+                    continue 
+                else: # If it's not found, it can be used as a generator, so update the span list
+                    generator_products += [np.dot(next_op, gen_prod) for gen_prod in generator_products]
+                    generator_products += [next_op]    
 
-                fail = False
-                for product in generator_products:
-                    new_product = np.dot(next_op, product)
-
-                    equality_test_inner = [np.equal(new_product, gen_product) for gen_product in generator_products]
-                    equality_test_outer = [np.all(eq_test) for eq_test in equality_test_inner] 
-
-                    if any(equality_test_outer):
-                        fail = True
-                        break
-                    else:
-                        next_products.append(new_product)
-
-                if fail:
-                    next_idx += 1 # Move to the next one
-                else: # Found a valid choice for next generator, add it and move to next case
-                    generator_products.extend(next_products)
-                    generator_products.append(next_op)
                     next_gen_op.append(self.table[row_idx][next_idx]) 
                     next_gen_mat.append(self.matrix_table[row_idx][next_idx]) 
                     num_gen += 1
                     next_idx += 1
-            
+
             generators_operator.append(next_gen_op) 
             generators_matrix.append(next_gen_mat) 
 
