@@ -21,7 +21,7 @@ class WignerFunction():
         self.mubs = mubs
         self.striations = Striations(self.field)
         self.quantum_net = self.compute_quantum_net()
-        #self.point_operators = compute_point_operators(self.striations, self.quantum_net)    
+        self.point_operators = self.compute_point_operators(self.striations, self.quantum_net)    
 
          
     def compute_quantum_net(self):
@@ -59,27 +59,47 @@ class WignerFunction():
                         
         return quantum_net        
 
-    def compute_point_operators(self):
+
+    def compute_point_operators(self, striations, net):
         """ Use the quantum net and the striations to compute the point operators
             for the Wigner function. 
         """
-        print("Unfinished!")
+        # The Wigner function is going to be "upside-down" for now
+        # A point operator is the sum of line operators through that point minus the identity
+        point_operators = []
 
+        for beta in self.field: # Fix the vertical axis
+            point_ops_this_row = []
+            for alpha in self.field: # Move across horizontally
+                point = (alpha, beta)
+                point_op = np.zeros((striations.field.dim, striations.field.dim))
+                # Every point will appear once in each striation
+                for str_idx in range(self.field.dim + 1):
+                    for curve_idx in range(self.field.dim):
+                        if point in striations[str_idx][curve_idx]: # Found the point
+                            point_op += net[str_idx][curve_idx] # Add the operator
+                            continue # Don't do more work than we have to, this is already hideous
+                point_op -= np.eye(striations.field.dim) # Subtract the identity
+                point_ops_this_row.append(point_op)
+            point_operators.append(point_ops_this_row)
+        return point_operators
+                            
+                                
 
     def compute_wf(self, state):
         """ Compute the probabilities in the Wigner function for a given state.
             Input: state, a numpy array representing either a ket or a density matrix.
         """
-        dim = len(point_ops)
-        W = np.zeros(( int(np.sqrt(dim)), int(np.sqrt(dim)) )) # Holds result
+        W = np.zeros(( self.field.dim, self.field.dim )) # Holds result
 
         # Don't discriminate - allow the user to submit either a ket state vector
         # or a density operator. If the state is a ket, just turn it into density operator.
         if state.shape[0] == 1:
             state = np.outer(state, np.conj(state))
 
-        for point in point_ops:
-            W[point[0]][point[1]] = 1.0 / dim * np.trace(np.dot(state, point_ops[point]))
+        for beta in range(self.field.dim):
+            for alpha in range(self.field.dim):
+                W[beta][alpha] = 1.0 / self.field.dim * np.trace(np.dot(state, self.point_operators[beta][alpha]))
 
         return W
 
