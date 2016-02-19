@@ -77,9 +77,9 @@ class WignerFunction():
                 for str_idx in range(self.field.dim + 1):
                     for curve_idx in range(self.field.dim):
                         if point in striations[str_idx][curve_idx]: # Found the point
-                            point_op += net[str_idx][curve_idx] # Add the operator
+                            point_op = point_op + net[str_idx][curve_idx] # Add the operator
                             continue # Don't do more work than we have to, this is already hideous
-                point_op -= np.eye(striations.field.dim) # Subtract the identity
+                point_op = point_op - np.eye(striations.field.dim) # Subtract the identity
                 point_ops_this_row.append(point_op)
             point_operators.append(point_ops_this_row)
         return point_operators
