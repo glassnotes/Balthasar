@@ -1,5 +1,6 @@
 from pynitefields import *
 from balthasar.curve import Curve 
+from balthasar.striations import Striations
 import numpy as np
 from functools import reduce
 
@@ -41,9 +42,8 @@ class MUBs():
 
         self.curves = []
         if curves == []: # Default to Desarguesian curves
-            for el in self.field: # Rest of the curves
-                self.curves.append(Curve([0, el], self.field))
-            self.curves.append(Curve([0, f[0]], self.field, True)) # Vertical curve last (alpha = 0)
+            striations = Striations(self.field)
+            self.curves = striations.get_rays()
         else: # Curves specified by user
             if self.verify_curves(curves) == True:
                 self.curves = curves 
