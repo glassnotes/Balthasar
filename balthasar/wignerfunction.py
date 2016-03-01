@@ -1,6 +1,8 @@
 from pynitefields import *
 from balthasar.striations import Striations
+from functools import reduce
 import numpy as np
+import pprint as pp
 
 class WignerFunction():
     """ Class to store and plot a discrete Wigner function.
@@ -45,7 +47,9 @@ class WignerFunction():
             next_striation_net = [] 
             for line_idx in range(len(self.striations[0])): # For every line in the striation
                 if line_idx == 0: # If it's the ray... 
-                    gen_sum = (1.0 / self.field.dim) * np.sum(gen_mats[str_idx], 0) # Sum the generators
+                    # Compute product of all generators 1/p(I + g1) * 1/p(I + g2) ...
+                    gen_mats_with_id = [(1.0 / self.field.p) * (gen_mats[str_idx][i] + np.eye(self.field.dim)) for i in range(len(gen_mats[str_idx]))]
+                    gen_sum = reduce(np.dot, [gen_mats_with_id[i] for i in range(len(gen_mats_with_id))])
                     next_striation_net.append(gen_sum)
                 else: # Otherwise, transform according to one of the translation operators
                     transformation = np.zeros((self.field.dim, self.field.dim))
@@ -111,7 +115,7 @@ class WignerFunction():
         from mpl_toolkits.mplot3d import Axes3D
         import matplotlib.pyplot as plt
 
-        W = compute_wf(state)
+        W = self.compute_wf(state)
 
         # This code was written in the summer and frankly I still don't 
         # fully understand, or at this point remember, why it works >.<

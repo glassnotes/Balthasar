@@ -3,6 +3,7 @@ from balthasar.curve import Curve
 from balthasar.striations import Striations
 import numpy as np
 from functools import reduce
+from operator import mul
 
 class MUBs():
     """ Class to hold a complete set of mutually unbiased bases
@@ -55,7 +56,7 @@ class MUBs():
         # Build the operator table in matrix form at the same time
         X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
-        ZX = - np.dot(Z, X)
+        ZX = np.dot(Z, X)
         I = np.identity(2)
         matrix_dict = {"X" : X, "Z" : Z, "ZX" : ZX, "1" : I} # Easy access
     
@@ -77,9 +78,10 @@ class MUBs():
                         op.append("Z" + ("" if z[idx] == 1 else str(z[idx])))
                     else:
                         op.append("Z" + ("" if z[idx] == 1 else str(z[idx])) + "X" + ("" if x[idx] == 1 else str(x[idx])))
-
+                        
                 row.append(op)
                 matrix_op = reduce(np.kron, (matrix_dict[i] for i in op)) # Compute matrix product
+               
                 matrix_row.append(matrix_op) 
 
             self.table.append(row) # Add to the tables
