@@ -56,6 +56,16 @@ f = GaloisField(5)
 c = Curve([0, 1, 3], f) # [0, 1, 3] could be a curve in many different fields
 ```
 
+### Striations
+Striations are the partitions of the affine plane into groups of parallel lines. They are used to
+build Latin squares and MUBs, and also to compute the point operators in discrete phase space for
+the Wigner function. The set of striations can be generated using the code snippet below; the first
+element of the striation list is the rays, or the lines which pass through the origin.
+```
+f = GaloisField(2, 2, [1, 1, 1])
+s = Striations(f)
+s[0] # Rays
+```
 
 ### Latin squares
 
@@ -65,6 +75,27 @@ f = GaloisField(7)
 c = Curve([0, f[1]], f)
 l = LatinSquare(c)
 l.print() # Prints the Latin square of order 7
+```
+
+### Wigner functions
+
+One of the main purpose for writing Balthasar was to compute the Wigner functions in discrete phases space. 
+A Wigner function can be generated using a table of MUBs expressed in the self-dual basis. A Wigner function
+can be computed from either a state vector or a density matrix.
+```
+f = GaloisField(2, 2, [1, 1, 1])
+f.to_sdb([1, 2])
+
+dim4_mubs = MUBs(f)
+
+my_wf = WignerFunction(dim4_mubs)
+
+# Compute the wf of a state
+state = (1.0 / math.sqrt(2)) * np.array([[1, 0, 0, 1]])
+wf_bell = my_wf.compute_wf(state)
+
+# Plot the Wigner function (under construction)
+my_wf.plot(state)
 ```
 
 ### Advanced functionality
