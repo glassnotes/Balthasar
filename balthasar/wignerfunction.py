@@ -107,11 +107,20 @@ class WignerFunction():
 
         return W
 
+    
+    def plot_mat(self, state):
+        import matplotlib.pyplot as plt
+        W = self.compute_wf(state)
+        plt.matshow(W)
+        plt.show()
 
+
+    
     def plot(self, state):
         """
         Plot the Wigner function of a given state.
         """
+        
         from mpl_toolkits.mplot3d import Axes3D
         import matplotlib.pyplot as plt
 
@@ -155,4 +164,6 @@ class WignerFunction():
         plt.xticks(range(0, len(W)))
         plt.yticks(range(0, len(W)))
         plt.gca().set_zlim([0, 0.25])
+        plt.show()
+
             

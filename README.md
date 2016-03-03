@@ -5,6 +5,7 @@ A Python package for generating and manipulating mutually unbiased bases. Baltha
 
 - [PyniteFields](https://github.com/glassnotes/PyniteFields)
 - numpy
+- libffi, cairocffi (for plotting Wigner functions with matplotlib)
 
 ===================================================
 
@@ -25,8 +26,7 @@ from pynitefields import *
 from balthasar import *
 
 f = GaloisField(2, 3, [1, 1, 0, 1])  # Finite field of order 8
-f.to_sdb([3, 5, 6])
-dim8_mubs = MUBs(f)
+f.to_sdb([3, 5, 6]) dim8_mubs = MUBs(f)
 ```
 
 It is best to use a self-dual, or almost self-dual basis to construct your MUB table. Using the
@@ -94,7 +94,7 @@ my_wf = WignerFunction(dim4_mubs)
 state = (1.0 / math.sqrt(2)) * np.array([[1, 0, 0, 1]])
 wf_bell = my_wf.compute_wf(state)
 
-# Plot the Wigner function (under construction)
+# Plot the Wigner function
 my_wf.plot(state)
 ```
 
