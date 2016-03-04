@@ -58,6 +58,28 @@ class Striations():
         return [s[0] for s in self.striations]
 
 
+    def plot(self, str_idx = 0, colours = []):
+        """ Plot the striations. Very colourful! If user does not specify a 
+            striation index, just plot the rays. The user can also specify a
+            set of colours; I've included 16 basic ones here for now.
+        """
+        
+        import matplotlib.pyplot as plt
+
+        # A subset of 16 colours to use to start
+        if colours == []:
+            colours = ['black', 'red', 'plum', 'yellow', 'blue', 'lightgrey', 
+                       'cyan', 'darkgrey', 'lime', 'darkred', 'darkgreen', 
+                       'orange', 'darkblue', 'purple', 'darkorchid', 'deeppink', 
+                       'chartreuse']
+
+        for i in range(0, len(self.striations[str_idx])):
+            line = self.striations[str_idx][i]
+            line_as_ints = [(pt[0].prim_power, pt[1].prim_power) for pt in line]
+            plt.scatter(*zip(*line_as_ints), color = colours[i], marker = "s", s =70)
+        plt.show()
+
+
     def print(self, as_points = False):
         """ Print out all the striations either as equations or as sets of points. """
         print("============================")

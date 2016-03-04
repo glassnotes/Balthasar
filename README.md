@@ -61,10 +61,14 @@ Striations are the partitions of the affine plane into groups of parallel lines.
 build Latin squares and MUBs, and also to compute the point operators in discrete phase space for
 the Wigner function. The set of striations can be generated using the code snippet below; the first
 element of the striation list is the rays, or the lines which pass through the origin.
+
+You can view a striation graphically by using the plot function and passing in an index. Striations are indexed by their slope, from 0 through each field element to 1, and then the last (-1) striation is the vertical lines with infinite slope.
 ```
 f = GaloisField(2, 2, [1, 1, 1])
 s = Striations(f)
 s[0] # Rays
+s.plot()  # Graphically see the rays
+s.plot(2) # Plot the striation with slope x^2, x is the primitive element of f
 ```
 
 ### Latin squares
