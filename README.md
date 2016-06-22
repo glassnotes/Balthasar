@@ -1,5 +1,6 @@
 # Balthasar
-A Python package for generating and manipulating mutually unbiased bases. Balthasar is currently under development and is as a result may not be fully functional. If you find any bugs, don't hesitate to contact me at odimatte@uwaterloo.ca.
+A Python package for generating and manipulating mutually unbiased bases and various other related objects. 
+Balthasar is currently under development and as a result may not be fully functional. If you find any bugs, don't hesitate to contact me at odimatte@uwaterloo.ca.
 
 ## Dependencies
 
@@ -20,7 +21,7 @@ python3 setup.py install
 
 ### MUBs
 
-To generate a set of MUBs in dimension _p_<sup>_n_</sup>, you must simply provide a finite field in this dimension:
+To generate a set of MUBs in dimension _p_<sup>_n_</sup>, you must simply provide a finite field:
 ```
 from pynitefields import *
 from balthasar import *
