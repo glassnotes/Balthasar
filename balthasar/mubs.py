@@ -10,13 +10,12 @@ class MUBs():
         in a specified dimension. 
         
         Member variables:
-        _field - The finite field of choice 
-        _p - The dimension of a single particle
-        _n - The number of particles
-        _d - The dimension of the system _d = _p^_n
-        _table - The table of operators
-        _matrix_table - The table of operators in explicit matrix form
-        _curves - The set of curves used to construct the table
+        field - The finite field of choice 
+        p - The dimension of a single particle
+        n - The number of particles
+        dim - The dimension of the system dim = p^n
+        table - The table of operators, in form (name, phase, matrix)
+        curves - The set of curves used to construct the table
 
         An operator in the MUB table is represented as a displacement 
         operator of the form 
@@ -56,13 +55,24 @@ class MUBs():
         self.field = f # Keep a copy of the finite field to do math!
         self.p = f.p 
         self.n = f.n
-        self.d = f.dim
+        self.dim = f.dim
         self.w = f.w
 
         # Declaring these parameters here so we see them all together 
         self.curves = [] # Which curves to use
         self.table = [] # Operator table in operator form
         self.D = {} # Dictionary of displacement operators
+
+        # Find and store the inverse of two only once, since we need
+        # it in all our phases for odd primes
+        self.twoinv = None
+        if self.p != 2:
+            if self.n == 1:
+                self.twoinv = self.field[2].inv()
+            else:
+                for el in self.field:
+                  if el.exp_coefs == ([2] + ([0] * (self.n -1))):
+                    self.twoinv = el.inv()
         # ------------------------------------------------------------
 
         # Set the curves, default to Desarguesian bundle if nothing passed in 
@@ -91,19 +101,10 @@ class MUBs():
                 return 1 # TODO
         else: # Qudits
             if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
-                prefactor = (self.field[2].inv() * a * b).prim_power
+                prefactor = (self.twoinv * a * b).prim_power
                 return pow(self.w, prefactor) 
             else: # Multiple qudits
-                two = None # First find two and it's inverse
-                for el in self._field:
-                    if el.exp_coefs == ([2] + ([0] * self._field.n - 1)):
-                        two = el
-                          
-                if two == None:
-                    print("Welp, something went wrong.")
-                    return None
-
-                return gchar(two.inv() * a * b)
+                return gchar(self.twoinv * a * b)
 
 
     def build_operator_table(self):
@@ -140,7 +141,7 @@ class MUBs():
             U = I[perm_order, :]
 
             # Diagonal generalized Z
-            powers_of_w = [pow(self.w, i).eval() for i in range(self.d)]
+            powers_of_w = [pow(self.w, i).eval() for i in range(self.dim)]
             np.fill_diagonal(V, powers_of_w)
 
         # Now it's time to actually build the tuples of the operator table
@@ -187,7 +188,7 @@ class MUBs():
             table.append(row) # Add to the tables
 
             # Finally, add the identity operator to the D table
-            D[(self.field[0], self.field[0])] = (self.w ** 0, np.identity(self.d)) 
+            D[(self.field[0], self.field[0])] = (self.w ** 0, np.identity(self.dim)) 
 
         return table, D
 
