@@ -86,9 +86,9 @@ class MUBs():
         """
         if self.p == 2: # Qubits
             if self.n == 1: # Single qubit case, +/- i^ab
-                return np.pow(1j, a * b)
+                return 1j ** (a * b).prim_power
             else:
-                return 0 # TODO
+                return 1 # TODO
         else: # Qudits
             if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
                 prefactor = (self.field[2].inv() * a * b).prim_power
@@ -160,7 +160,7 @@ class MUBs():
 
                 for idx in range(len(v)):
                     if u[idx] == 0 and v[idx] == 0: # Both coefs 0
-                        op.append("1") # Tensor factor is identity
+                        op.append("I") # Tensor factor is identity
                     elif u[idx] == 0 and v[idx] != 0:
                         op.append("V" + ("" if v[idx] == 1 else str(v[idx])))
                     elif u[idx] != 0 and v[idx] == 0:
@@ -195,7 +195,7 @@ class MUBs():
 
 
     def print(self, matrix_form = False):
-        np.set_printoptions(threshold=np.nan, suppress=True)
+        np.set_printoptions(precision=4, threshold=np.nan, suppress=True)
         for row in self.table:
             for operator in row:
                 print(str(operator[1]) + " ", end = "") # Phase
