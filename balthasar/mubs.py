@@ -10,17 +10,36 @@ class MUBs():
         in a specified dimension. 
         
         Member variables:
-        p - The dimension of a single particle
-        n - The number of particles
-        dim - The dimension of the system p^n
-        table - The table of operators
-        matrix_table - The table of operators in explicit matrix form
-        curves - The set of curves used to construct the table
+        _field - The finite field of choice 
+        _p - The dimension of a single particle
+        _n - The number of particles
+        _d - The dimension of the system _d = _p^_n
+        _table - The table of operators
+        _matrix_table - The table of operators in explicit matrix form
+        _curves - The set of curves used to construct the table
 
-        An operator in the MUB table is represented as a monomial of the
-        form Z_alpha X_beta. By default, we will produce MUBs of the 
-        Desarguesian form, where beta = lambda alpha.
+        An operator in the MUB table is represented as a displacement 
+        operator of the form 
+                          D(a, b) = phi(a, b) U_b V_a
+        where a, b are field elements, and phi(a, b) is a phase factor.
+        The two operators U and V are defined as 
+                  U^a |l> = |l + a>,   V^b |l> = w(bl) |l>
+        in prime dimensions (where w represents the p^th root of unity), 
+        and similarly in composite dimensions but w is replaced by the group
+        character. I'm calling them U and V because in general they are the
+        elements of the Heisenberg-Weyl group and not just the qubit Pauli X/Z.
+        These guys will be stored as tuples containing the phase factors
+        separately because they're not always needed, i.e.
+                           ( op_name,  phi(a, b), U_b * V_a )
+       
+        By default, we will produce MUBs of the Desarguesian form, 
+        where beta = lambda alpha.
     """
+
+    """ The following series of functions provides phase factors for
+        the displacement operators depending on what case we're in.
+    """
+
 
     def __init__(self, f, curves = []):
         """ Initialize a new table of MUBs.
@@ -32,105 +51,143 @@ class MUBs():
                     expansion coefficients are not represented in \
                     the self-dual basis.")
 
+        # ------------------------------------------------------------
         # Set some obvious parameters
         self.field = f # Keep a copy of the finite field to do math!
-        self.p = f.p
+        self.p = f.p 
         self.n = f.n
-        self.dim = f.dim
+        self.d = f.dim
+        self.w = f.w
 
-        # If no curves have been passed in, we should just use the
-        # Desarguesian bundle.
+        # Declaring these parameters here so we see them all together 
+        self.curves = [] # Which curves to use
+        self.table = [] # Operator table in operator form
+        self.matrix_table = [] # Operator table in matrix form
+        # ------------------------------------------------------------
 
-        self.curves = []
-        if curves == []: # Default to Desarguesian curves
+        # Set the curves, default to Desarguesian bundle if nothing passed in 
+        if curves == []: 
             striations = Striations(self.field)
             self.curves = striations.get_rays()
         else: # Curves specified by user
             if self.verify_curves(curves) == True:
                 self.curves = curves 
 
-        # Build the operator tables
-        self.table = []
-        self.matrix_table = []
 
         # Build the operator table in matrix form at the same time
-        X = np.array([[0, 1], [1, 0]])
-        Z = np.array([[1, 0], [0, -1]])
-        ZX = np.dot(Z, X)
-        I = np.identity(2)
-        matrix_dict = {"X" : X, "Z" : Z, "ZX" : ZX, "1" : I} # Easy access
-    
-        for curve in self.curves:
-            row = []
-            matrix_row = []
-            for point in curve:
-                op= []
-                if point[0] == self.field[0] and point[1] == self.field[0]:
-                    continue
-                z = point[0].exp_coefs # Expansion of the Z part
-                x = point[1].exp_coefs # Expansion of the X part
-                for idx in range(len(z)):
-                    if z[idx] == 0 and x[idx] == 0:
-                        op.append("1")
-                    elif z[idx] == 0 and x[idx] != 0:
-                        op.append("X" + ("" if x[idx] == 1 else str(x[idx])))
-                    elif z[idx] != 0 and x[idx] == 0:
-                        op.append("Z" + ("" if z[idx] == 1 else str(z[idx])))
-                    else:
-                        op.append("Z" + ("" if z[idx] == 1 else str(z[idx])) + "X" + ("" if x[idx] == 1 else str(x[idx])))
-                        
-                row.append(op)
-                matrix_op = reduce(np.kron, (matrix_dict[i] for i in op)) # Compute matrix product
-               
-                matrix_row.append(matrix_op) 
+        self.table = self.build_operator_table()
 
-            self.table.append(row) # Add to the tables
-            self.matrix_table.append(matrix_row)
 
-            
 
-    def compute_generators(self):
-        """ Compute the generators for each ray in the MUB table.
-            Store two versions, one for the letter version and another for the matrices.
-        """ 
-        generators_operator = []
-        generators_matrix = []
+    def phi(self, a, b):
+        """ Phase function for the displacement operators.
+            Handles every case (p odd/even, single/multi-qudit).
+            Returns phase as either number, or pth root of unity.
+        """
+        if self.p == 2: # Qubits
+            if self.n == 1: # Single qubit case, +/- i^ab
+                return np.pow(1j, a * b)
+            else:
+                return 0 # TODO
+        else: # Qudits
+            if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
+                prefactor = (self.field[2].inv() * a * b).prim_power
+                return pow(self.w, prefactor) 
+            else: # Multiple qudits
+                two = None # First find two and it's inverse
+                for el in self._field:
+                    if el.exp_coefs == ([2] + ([0] * self._field.n - 1)):
+                        two = el
+                          
+                if two == None:
+                    print("Welp, something went wrong.")
+                    return None
+
+                return gchar(two.inv() * a * b)
+
+
+    def build_operator_table(self):
+        """ Actually construct the operator table for the MUBs.
+            This will be done using the displacement operators.
+
+            We will consider our matrices of the form
+                D(a, b) = phi(a, b) U_b V_a
+            where a and b are field elements.
+
+            We can further break this down by considering everything
+            as an n-particle system, i.e.
+                  b = sum (b_i theta_i), a = sum (a_i theta_i)
+            for the expansions in the (almost) self-dual basis. Then,
+                U_b V_a = U^b1 V^a1 \otimes ... \otimes U^bn V^bn
+            where U, V are the generalized Paulis (shift/diagonal).
+            There are also some coefficients in here we'll have to figure out.
+        """
+        table = []
+
+        # Hold the generalized Paulis and the identity  
+        U = np.zeros((self.p, self.p), dtype=np.complex_)
+        V = np.zeros((self.p, self.p), dtype=np.complex_)
+        I = np.identity(self.p)
         
-        for row_idx in range(len(self.table)):  # Compute for all rows of the table
-            next_gen_op = self.table[row_idx][:2] # Collect first two elements
-            next_gen_mat = self.matrix_table[row_idx][:2]
-            
-            num_gen = 2 # Current number of generators 
-            next_idx = 2 # Index of next operator to check
-            # Keep track of all possible products and add to this as we compute more generators
-            generator_products = [next_gen_mat[0], next_gen_mat[1], np.dot(next_gen_mat[0], next_gen_mat[1])]
+        if self.p == 2: # Simple case of qubit Paulis
+            U = np.array([[0, 1], [1, 0]]) # X
+            V = np.array([[1, 0], [0, -1]]) # Z
+        else:
+            # Diagonal X, thanks to 
+            # SO questions/10936767/rearranging-matrix-elements-with-numpy
+            perm_order = [self.p - 1] + [x for x in range(self.p - 1)] 
+            U = I[perm_order, :]
 
-            while num_gen < self.field.n: # Keep going until we have n generators
-                next_op = self.matrix_table[next_idx]
+            # Diagonal generalized Z
+            powers_of_w = [pow(self.w, i).eval() for i in range(self.d)]
+            np.fill_diagonal(V, powers_of_w)
+
+        # Now it's time to actually build the tuples of the operator table
+        for curve in self.curves:
+            row = [] # Each curve produces a different row of the table
+            for point in curve: # (a, b)
+                op= []
+                op_mats = []
+
+                a, b = point[0], point[1]
+
+                if a == self.field[0] and b == self.field[0]:
+                    continue # We ignore the identity
+
+                phase = self.phi(a, b)
+                u = b.exp_coefs # Expansion of the U part
+                v = a.exp_coefs # Expansion of the V part
+
+                for idx in range(len(v)):
+                    if u[idx] == 0 and v[idx] == 0: # Both coefs 0
+                        op.append("1") # Tensor factor is identity
+                    elif u[idx] == 0 and v[idx] != 0:
+                        op.append("V" + ("" if v[idx] == 1 else str(v[idx])))
+                    elif u[idx] != 0 and v[idx] == 0:
+                        op.append("U" + ("" if u[idx] == 1 else str(u[idx])))
+                    else:
+                        op.append("V" + ("" if v[idx] == 1 else str(v[idx])) + \
+                            "U" + ("" if u[idx] == 1 else str(u[idx])))
+
+                    # Matrix 
+                    V_part = np.linalg.matrix_power(V, v[idx])
+                    U_part = np.linalg.matrix_power(U, u[idx])
+                    op_mats.append(np.dot(V_part, U_part))
+                        
+                # Compute the matrix product
+                matrix_op = reduce(np.kron, op_mats)
                 
-                # Check if the new matrix is in the span of the previous ones
-                equality_test = [np.equal(next_op, gen_prod).all() for gen_prod in generator_products]
+                # Append the tuple to the row
+                row.append( (op, phase, matrix_op) )
+               
+            table.append(row) # Add to the tables
 
-                if any(equality_test): # Invalid, increment and move on
-                    next_idx += 1
-                    continue 
-                else: # If it's not found, it can be used as a generator, so update the span list
-                    generator_products += [np.dot(next_op, gen_prod) for gen_prod in generator_products]
-                    generator_products += [next_op]    
-
-                    next_gen_op.append(self.table[row_idx][next_idx]) 
-                    next_gen_mat.append(self.matrix_table[row_idx][next_idx]) 
-                    num_gen += 1
-                    next_idx += 1
-
-            generators_operator.append(next_gen_op) 
-            generators_matrix.append(next_gen_mat) 
-
-        return generators_operator, generators_matrix
+        return table
 
 
     def verify_curves(self, curves):
-        # TODO check that the properties of the provided curves are valid
+        """ TODO check that the properties of the provided curves are valid
+        """
         if len(curves) != self.dim + 1:
             print("Error, not enough curves provided.")
             return False
@@ -138,19 +195,12 @@ class MUBs():
 
 
     def print(self, matrix_form = False):
-        if matrix_form: # Print as matrices
-            np.set_printoptions(threshold=np.nan, suppress=True)
-            for i in range(len(self.matrix_table)):
-                for operator in self.table[i]:
-                    print(" ".join(operator) + "\t\t", end = "")
-                print("\n")
-                for operator in self.matrix_table[i]:
-                    print(operator) 
-                    print("\n")
-                print("\n")
-        else: # Print as a table
-            for row in self.table:
-                for operator in row:
-                    print(" ".join(operator) + "\t\t", end = "")
-                print("\n")
-
+        np.set_printoptions(threshold=np.nan, suppress=True)
+        for row in self.table:
+            for operator in row:
+                print(str(operator[1]) + " ", end = "") # Phase
+                print(" ".join(operator[0]) + "\t\t", end = "")
+                if matrix_form: # Print as matrices
+                    print()
+                    print(operator[2]) # Matrix
+            print("\n")
