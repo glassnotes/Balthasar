@@ -171,9 +171,9 @@ class MUBs():
                             "U" + ("" if u[idx] == 1 else str(u[idx])))
 
                     # Matrix for this chunk of the tensor product
-                    V_part = np.linalg.matrix_power(V, v[idx])
                     U_part = np.linalg.matrix_power(U, u[idx])
-                    op_mats.append(np.dot(V_part, U_part))
+                    V_part = np.linalg.matrix_power(V, v[idx])
+                    op_mats.append(np.dot(U_part, V_part))
                         
                 # Tensor together all the matrices 
                 matrix_op = reduce(np.kron, op_mats)

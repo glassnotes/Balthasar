@@ -40,7 +40,7 @@ class WignerFunction():
           
         kernel_00 = np.zeros((self.dim, self.dim), dtype=np.complex_)
         if self.field.p != 2:
-            for key in self.D:
+            for key in self.D.keys():
                 kernel_00 = kernel_00 + (self.D[key][0].eval() * self.D[key][1])
             kernel_00 = kernel_00 / self.dim
             kernel[(self.field[0], self.field[0])] = kernel_00
