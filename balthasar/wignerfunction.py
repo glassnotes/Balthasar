@@ -10,100 +10,72 @@ class WignerFunction():
         Parameters:
         ===========
         field - The finite field over which the Wigner function is defined
+        dim - The dimension of the system 
         mubs - The MUBs associated with this Wigner function
-        quantum_net - Association of striations to density operators
         striations - The Striation
-        point_operators - Operators at each point in discrete phase space
-        matrix - The matrix which contains the probability values for each Wigner function
+        D - The dictionary of displacement operators
+        kernel - Operators at each point in discrete phase space ('point ops')
     """
 
     def __init__(self, mubs):
         """ Initialize the Wigner function and compute the point operators. """
         self.field = mubs.field
+        self.dim = self.field.dim
         self.mubs = mubs
+        self.D = mubs.D
         self.striations = Striations(self.field)
-        self.quantum_net = self.compute_quantum_net()
-        self.point_operators = self.compute_point_operators(self.striations, self.quantum_net)    
+        self.kernel = self.compute_kernel(self.striations)    
 
          
-    def compute_quantum_net(self):
-        """ Compute the quantum net of the Wigner function, i.e. the association of
-            lines with quantum states (as density operators).
-
-            We associate every ray with the all +1 combination of the generators of
-            the row of MUB operators associated to that curve. 
+    def compute_kernel(self, striations):
+        """ Compute the 'kernel' of the Wigner function, i.e. the set of 
+            point operators.
         """
-        # Get the table of generating operators and their matrix representation
-        gen_ops, gen_mats = self.mubs.compute_generators() 
+        kernel = {} 
 
-        # Horizontal shifts correspond to the Z-only operators (b = 0, so only alpha coordinate varies)
-        # Vertical shifts correspond to the X-only operators (a = 0, so only beta coordinate varies)
-        trans_hor, trans_vert = self.mubs.matrix_table[0], self.mubs.matrix_table[-1]
+        # Computation of the kernel can be accomplished by computing the
+        # value at point (0, 0), then translating it using the D operators,
+        # i.e.        w(a, b) = D(a, b) w(0, 0) D(a, b)^\dag
         
-        quantum_net = []    
+          
+        kernel_00 = np.zeros((self.dim, self.dim), dtype=np.complex_)
+        if self.field.p != 2:
+            for key in self.D:
+                kernel_00 = kernel_00 + (self.D[key][0].eval() * self.D[key][1])
+            kernel_00 = kernel_00 / self.dim
+            kernel[(self.field[0], self.field[0])] = kernel_00
+        else:
+            print("Unsure of how to compute initial operator for this case.")
 
-        # Loop through every striation
-        for str_idx in range(len(gen_ops)):
-            next_striation_net = [] 
-            for line_idx in range(len(self.striations[0])): # For every line in the striation
-                if line_idx == 0: # If it's the ray... 
-                    # Compute product of all generators 1/p(I + g1) * 1/p(I + g2) ...
-                    gen_mats_with_id = [(1.0 / self.field.p) * (gen_mats[str_idx][i] + np.eye(self.field.dim)) for i in range(len(gen_mats[str_idx]))]
-                    gen_sum = reduce(np.dot, [gen_mats_with_id[i] for i in range(len(gen_mats_with_id))])
-                    next_striation_net.append(gen_sum)
-                else: # Otherwise, transform according to one of the translation operators
-                    transformation = np.zeros((self.field.dim, self.field.dim))
-                    if str_idx == (len(gen_ops) - 1): # Vertical striation must be handled separately and shifted using Z operators
-                        transformation = trans_hor[line_idx - 1] # -1 accounts for the fact that the identity is technically the 0th trans
-                    else: # All other striations shifted vertically horizontally using the X operators
-                        transformation = trans_vert[line_idx - 1]
-                    transformed_operator = np.dot(np.dot(transformation, next_striation_net[0]), np.asmatrix(transformation).H)
-                    next_striation_net.append(transformed_operator)
-            quantum_net.append(next_striation_net)
-                        
-        return quantum_net        
+        # Compute the rest of the points by translating the first one
+        for a in self.field:
+            for b in self.field:
+                if a == self.field[0] and b == self.field[0]:
+                    continue # Don't set the 0 case again
+                dab = self.D[(a, b)][0].eval() * self.D[(a, b)][1]
+                dab_dag = np.asmatrix(dab).getH()
 
+                kernel[(a, b)] = np.dot(dab, np.dot(kernel_00, dab_dag))
 
-    def compute_point_operators(self, striations, net):
-        """ Use the quantum net and the striations to compute the point operators
-            for the Wigner function. 
-        """
-        # The Wigner function is going to be "upside-down" for now
-        # A point operator is the sum of line operators through that point minus the identity
-        point_operators = []
+        return kernel
 
-        for beta in self.field: # Fix the vertical axis
-            point_ops_this_row = []
-            for alpha in self.field: # Move across horizontally
-                point = (alpha, beta)
-                point_op = np.zeros((striations.field.dim, striations.field.dim))
-                # Every point will appear once in each striation
-                for str_idx in range(self.field.dim + 1):
-                    for curve_idx in range(self.field.dim):
-                        if point in striations[str_idx][curve_idx]: # Found the point
-                            point_op = point_op + net[str_idx][curve_idx] # Add the operator
-                            continue # Don't do more work than we have to, this is already hideous
-                point_op = point_op - np.eye(striations.field.dim) # Subtract the identity
-                point_ops_this_row.append(point_op)
-            point_operators.append(point_ops_this_row)
-        return point_operators
                             
                                 
-
     def compute_wf(self, state):
         """ Compute the probabilities in the Wigner function for a given state.
             Input: state, a numpy array representing either a ket or a density matrix.
         """
-        W = np.zeros(( self.field.dim, self.field.dim )) # Holds result
+        W = np.zeros((self.dim, self.dim)) # Holds result
 
-        # Don't discriminate - allow the user to submit either a ket state vector
-        # or a density operator. If the state is a ket, just turn it into density operator.
+        # Don't discriminate - allow the user to submit either a ket vector
+        # or a density operator. If it's a ket, switch to a density operator.
         if state.shape[0] == 1:
             state = np.outer(state, np.conj(state))
 
-        for beta in range(self.field.dim):
-            for alpha in range(self.field.dim):
-                W[beta][alpha] = 1.0 / self.field.dim * np.trace(np.dot(state, self.point_operators[beta][alpha]))
+        for a in self.field:
+            for b in self.field:
+                mat = np.trace(np.dot(state, self.kernel[(a, b)]))
+                W[a.prim_power][b.prim_power] = (1.0 / self.dim) * mat
 
         return W
 
