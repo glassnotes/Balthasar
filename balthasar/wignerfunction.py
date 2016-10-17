@@ -45,14 +45,25 @@ class WignerFunction():
             kernel_00 = kernel_00 / self.dim
             kernel[(self.field[0], self.field[0])] = kernel_00
         else:
-            print("Unsure of how to compute initial operator for this case.")
+            if self.field.n == 1:
+                for key in self.D.keys():
+                    kernel_00 = kernel_00 + (self.D[key][0] * self.D[key][1])
+                kernel_00 = kernel_00 / self.dim
+                kernel[(self.field[0], self.field[0])] = kernel_00
+            else:
+                print("Unsure of how to compute initial operator for this case.")
 
         # Compute the rest of the points by translating the first one
         for a in self.field:
             for b in self.field:
                 if a == self.field[0] and b == self.field[0]:
                     continue # Don't set the 0 case again
-                dab = self.D[(a, b)][0].eval() * self.D[(a, b)][1]
+                # Compute the displacement operator with phase included
+                if self.field.p == 2: # For p = 2 this is a number
+                    dab = self.D[(a, b)][0] * self.D[(a, b)][1]
+                else: # For p != 2 we need to evaluate the power of pth root 
+                    dab = self.D[(a, b)][0].eval() * self.D[(a, b)][1]
+
                 dab_dag = np.asmatrix(dab).getH()
 
                 kernel[(a, b)] = np.dot(dab, np.dot(kernel_00, dab_dag))

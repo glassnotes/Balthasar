@@ -188,7 +188,8 @@ class MUBs():
             table.append(row) # Add to the tables
 
             # Finally, add the identity operator to the D table
-            D[(self.field[0], self.field[0])] = (self.w ** 0, np.identity(self.dim)) 
+            id_phase = self.phi(self.field[0], self.field[0])
+            D[(self.field[0], self.field[0])] = (id_phase, np.identity(self.dim)) 
 
         return table, D
 
