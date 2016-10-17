@@ -62,7 +62,7 @@ class MUBs():
         # Declaring these parameters here so we see them all together 
         self.curves = [] # Which curves to use
         self.table = [] # Operator table in operator form
-        self.matrix_table = [] # Operator table in matrix form
+        self.D = {} # Dictionary of displacement operators
         # ------------------------------------------------------------
 
         # Set the curves, default to Desarguesian bundle if nothing passed in 
@@ -75,7 +75,7 @@ class MUBs():
 
 
         # Build the operator table in matrix form at the same time
-        self.table = self.build_operator_table()
+        self.table, self.D = self.build_operator_table()
 
 
 
@@ -123,6 +123,7 @@ class MUBs():
             There are also some coefficients in here we'll have to figure out.
         """
         table = []
+        D = {}
 
         # Hold the generalized Paulis and the identity  
         U = np.zeros((self.p, self.p), dtype=np.complex_)
@@ -169,20 +170,26 @@ class MUBs():
                         op.append("V" + ("" if v[idx] == 1 else str(v[idx])) + \
                             "U" + ("" if u[idx] == 1 else str(u[idx])))
 
-                    # Matrix 
+                    # Matrix for this chunk of the tensor product
                     V_part = np.linalg.matrix_power(V, v[idx])
                     U_part = np.linalg.matrix_power(U, u[idx])
                     op_mats.append(np.dot(V_part, U_part))
                         
-                # Compute the matrix product
+                # Tensor together all the matrices 
                 matrix_op = reduce(np.kron, op_mats)
                 
                 # Append the tuple to the row
                 row.append( (op, phase, matrix_op) )
-               
+
+                # Add the displacement operator to the matrix
+                D[(a, b)] = (phase, matrix_op)
+
             table.append(row) # Add to the tables
 
-        return table
+            # Finally, add the identity operator to the D table
+            D[(self.field[0], self.field[0])] = (self.w ** 0, np.identity(self.d)) 
+
+        return table, D
 
 
     def verify_curves(self, curves):
