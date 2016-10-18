@@ -12,7 +12,6 @@ class WignerFunction():
         field - The finite field over which the Wigner function is defined
         dim - The dimension of the system 
         mubs - The MUBs associated with this Wigner function
-        striations - The Striation
         D - The dictionary of displacement operators
         kernel - Operators at each point in discrete phase space ('point ops')
     """
@@ -23,11 +22,10 @@ class WignerFunction():
         self.dim = self.field.dim
         self.mubs = mubs
         self.D = mubs.D
-        self.striations = Striations(self.field)
-        self.kernel = self.compute_kernel(self.striations)    
+        self.kernel = self.compute_kernel()    
 
          
-    def compute_kernel(self, striations):
+    def compute_kernel(self):
         """ Compute the 'kernel' of the Wigner function, i.e. the set of 
             point operators.
         """
@@ -36,7 +34,6 @@ class WignerFunction():
         # Computation of the kernel can be accomplished by computing the
         # value at point (0, 0), then translating it using the D operators,
         # i.e.        w(a, b) = D(a, b) w(0, 0) D(a, b)^\dag
-        
           
         kernel_00 = np.zeros((self.dim, self.dim), dtype=np.complex_)
         if self.field.p != 2:
@@ -74,7 +71,8 @@ class WignerFunction():
                                 
     def compute_wf(self, state):
         """ Compute the probabilities in the Wigner function for a given state.
-            Input: state, a numpy array representing either a ket or a density matrix.
+            Input: state, a numpy array representing either a ket or a 
+            density matrix.
         """
         W = np.zeros((self.dim, self.dim)) # Holds result
 
