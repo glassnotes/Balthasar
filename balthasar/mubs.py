@@ -185,7 +185,7 @@ class MUBs():
                 # Add the displacement operator to the matrix
                 D[(a, b)] = (phase, matrix_op)
 
-            table.append(row) # Add to the tables
+            table.append(row) # Add rows to the table
 
             # Finally, add the identity operator to the D table
             id_phase = self.phi(self.field[0], self.field[0])
