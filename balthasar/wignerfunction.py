@@ -78,10 +78,16 @@ class WignerFunction():
         if state.shape[0] == 1:
             state = np.outer(state, np.conj(state))
 
+        sorted_els = sorted(self.field.elements)
+
         for a in self.field:
             for b in self.field:
                 mat = np.trace(np.dot(state, self.kernel[(a, b)]))
-                W[a.prim_power][b.prim_power] = (1.0 / self.dim) * mat
+                a_coord = sorted_els.index(a)
+                b_coord = sorted_els.index(b)
+                #W[a.prim_power][b.prim_power] = (1.0 / self.dim) * mat
+                W[a_coord][b_coord] = (1.0 / self.dim) * mat
+                
 
         return W
 
