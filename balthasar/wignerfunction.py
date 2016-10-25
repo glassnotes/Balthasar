@@ -42,13 +42,10 @@ class WignerFunction():
             kernel_00 = kernel_00 / self.dim
             kernel[(self.field[0], self.field[0])] = kernel_00
         else:
-            if self.field.n == 1:
-                for key in self.D.keys():
-                    kernel_00 = kernel_00 + (self.D[key][0] * self.D[key][1])
-                kernel_00 = kernel_00 / self.dim
-                kernel[(self.field[0], self.field[0])] = kernel_00
-            else:
-                print("Unsure of how to compute initial operator for this case.")
+            for key in self.D.keys():
+                kernel_00 = kernel_00 + (self.D[key][0] * self.D[key][1])
+            kernel_00 = kernel_00 / self.dim
+            kernel[(self.field[0], self.field[0])] = kernel_00
 
         # Compute the rest of the points by translating the first one
         for a in self.field:

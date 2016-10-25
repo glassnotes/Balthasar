@@ -92,13 +92,21 @@ class MUBs():
     def phi(self, a, b):
         """ Phase function for the displacement operators.
             Handles every case (p odd/even, single/multi-qudit).
-            Returns phase as either number, or pth root of unity.
+            Returns phase as either number, for qubits, or as a power
+            of a pth root of unity for qudits.
+
+            The phase condition in general for the displacement operators
+            is that they must satisfy
+                        phi^2(a, b) = gchar(-ab)
+            Of course for qubits this becomes
+                        phi^2(a, b) = gchar(ab)
+            and ends up reducing to some powers of i.
         """
         if self.p == 2: # Qubits
             if self.n == 1: # Single qubit case, +/- i^ab
                 return 1j ** (a * b).prim_power
-            else:
-                return 1 # TODO
+            else: 
+                return 1j ** tr(a * b)
         else: # Qudits
             if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
                 prefactor = (self.twoinv * a * b).prim_power
