@@ -19,17 +19,17 @@ class MUBs():
 
         An operator in the MUB table is represented as a displacement 
         operator of the form 
-                          D(a, b) = phi(a, b) U_b V_a
+                          D(a, b) = phi(a, b) Z_a X_b
         where a, b are field elements, and phi(a, b) is a phase factor.
-        The two operators U and V are defined as 
-                  U^a |l> = |l + a>,   V^b |l> = w(bl) |l>
+        The two operators Z and X are defined as 
+                  Z^a |l> = w(al) |l>, X^b |l> = |l + b>,   
         in prime dimensions (where w represents the p^th root of unity), 
         and similarly in composite dimensions but w is replaced by the group
-        character. I'm calling them U and V because in general they are the
-        elements of the Heisenberg-Weyl group and not just the qubit Pauli X/Z.
+        character. For qubits Z and X are the simple Pauli operators. For
+        qudits they are the generalized Paulis.
         These guys will be stored as tuples containing the phase factors
         separately because they're not always needed, i.e.
-                           ( op_name,  phi(a, b), U_b * V_a )
+                      ( op_name,  phi(a, b), Z_a * X_b )
        
         By default, we will produce MUBs of the Desarguesian form, 
         where beta = lambda alpha.
@@ -120,37 +120,40 @@ class MUBs():
             This will be done using the displacement operators.
 
             We will consider our matrices of the form
-                D(a, b) = phi(a, b) U_b V_a
+                D(a, b) = phi(a, b) Z_a X_b 
             where a and b are field elements.
 
             We can further break this down by considering everything
             as an n-particle system, i.e.
                   b = sum (b_i theta_i), a = sum (a_i theta_i)
             for the expansions in the (almost) self-dual basis. Then,
-                U_b V_a = U^b1 V^a1 \otimes ... \otimes U^bn V^bn
-            where U, V are the generalized Paulis (shift/diagonal).
-            There are also some coefficients in here we'll have to figure out.
+                Z_a X_b = Z^a1 X^b1 \otimes ... \otimes Z^an X^bn
+            where Z, X are the generalized Paulis.
+
+            Note that this decomposition works only when there is 
+            a true self-dual basis. For almost self-dual bases we will need
+            to do something different.
         """
         table = []
         D = {}
 
         # Hold the generalized Paulis and the identity  
-        U = np.zeros((self.p, self.p), dtype=np.complex_)
-        V = np.zeros((self.p, self.p), dtype=np.complex_)
+        Z = np.zeros((self.p, self.p), dtype=np.complex_)
+        X = np.zeros((self.p, self.p), dtype=np.complex_)
         I = np.identity(self.p)
         
         if self.p == 2: # Simple case of qubit Paulis
-            U = np.array([[0, 1], [1, 0]]) # X
-            V = np.array([[1, 0], [0, -1]]) # Z
+            X = np.array([[0, 1], [1, 0]]) # X
+            Z = np.array([[1, 0], [0, -1]]) # Z
         else:
             # Diagonal X, thanks to 
             # SO questions/10936767/rearranging-matrix-elements-with-numpy
             perm_order = [self.p - 1] + [x for x in range(self.p - 1)] 
-            U = I[perm_order, :]
+            X = I[perm_order, :]
 
             # Diagonal generalized Z
             powers_of_w = [pow(self.w, i).eval() for i in range(self.dim)]
-            np.fill_diagonal(V, powers_of_w)
+            np.fill_diagonal(Z, powers_of_w)
 
         # Now it's time to actually build the tuples of the operator table
         for curve in self.curves:
@@ -165,24 +168,24 @@ class MUBs():
                     continue # We ignore the identity
 
                 phase = self.phi(a, b)
-                u = b.exp_coefs # Expansion of the U part
-                v = a.exp_coefs # Expansion of the V part
+                z = a.exp_coefs # Expansion of the Z part
+                x = b.exp_coefs # Expansion of the X part
 
-                for idx in range(len(v)):
-                    if u[idx] == 0 and v[idx] == 0: # Both coefs 0
+                for idx in range(len(x)):
+                    if z[idx] == 0 and x[idx] == 0: # Both coefs 0
                         op.append("I") # Tensor factor is identity
-                    elif u[idx] == 0 and v[idx] != 0:
-                        op.append("V" + ("" if v[idx] == 1 else str(v[idx])))
-                    elif u[idx] != 0 and v[idx] == 0:
-                        op.append("U" + ("" if u[idx] == 1 else str(u[idx])))
+                    elif z[idx] == 0 and x[idx] != 0:
+                        op.append("X" + ("" if x[idx] == 1 else str(x[idx])))
+                    elif z[idx] != 0 and x[idx] == 0:
+                        op.append("Z" + ("" if z[idx] == 1 else str(z[idx])))
                     else:
-                        op.append("V" + ("" if v[idx] == 1 else str(v[idx])) + \
-                            "U" + ("" if u[idx] == 1 else str(u[idx])))
+                        op.append("Z" + ("" if z[idx] == 1 else str(z[idx])) + \
+                            "X" + ("" if x[idx] == 1 else str(x[idx])))
 
                     # Matrix for this chunk of the tensor product
-                    U_part = np.linalg.matrix_power(U, u[idx])
-                    V_part = np.linalg.matrix_power(V, v[idx])
-                    op_mats.append(np.dot(U_part, V_part))
+                    Z_part = np.linalg.matrix_power(Z, z[idx])
+                    X_part = np.linalg.matrix_power(X, x[idx])
+                    op_mats.append(np.dot(Z_part, X_part))
                         
                 # Tensor together all the matrices 
                 matrix_op = reduce(np.kron, op_mats)
