@@ -24,6 +24,8 @@ class CoarseWignerFunction(WignerFunction):
         Parameters (new):
         ===========
         subfield - The effective subfield within the large field
+        subfield_map - Map between elements of the large field with those
+                       in the small field
         coarse_dim - A tuple representing the dimensions of the coarse system
         coset_reps - The coset representatives
         cosets - The cosets of the finite field (incl. representatives)
@@ -86,17 +88,16 @@ class CoarseWignerFunction(WignerFunction):
 
             if "cosets" in kwargs:
                 # Make sure the cosets are valid
-                field_as_list = [f[i] for i in range(self.dim)]
-                cosets_flattened = [el for el in c for c in kwargs["cosets"]]
+                field_as_list = [self.field[i] for i in range(self.dim)]
+                cosets_flattened = [el for c in kwargs["cosets"] for el in c]
                 if sorted(field_as_list) != sorted(cosets_flattened):
                     print("Error, are not a proper partitioning of the field.")
                     return None
                 # If they're valid, choose representatives and carry on
-                self.coset_reps = [c[0] for c in cosets]
-                self.cosets = cosets
+                self.cosets = kwargs["cosets"]
 
         # Compute the subfield
-        self.subfield = self.compute_subfield()
+        self.subfield, self.subfield_map = self.compute_subfield()
         if self.subfield == None:
             return None
 
@@ -105,11 +106,11 @@ class CoarseWignerFunction(WignerFunction):
             self.cosets = self.compute_cosets()
 
         # Compute the coarse displacement operators.
-        #self.coarse_D = self.compute_coarse_D()
+        self.coarse_D = self.compute_coarse_D()
 
         # Using the coarse displacement operators, compute the coarse kernel
         # The points here are indexed by their coset representatives.
-        #self.coarse_kernel = self.compute_coarse_kernel()
+        self.coarse_kernel = self.compute_coarse_kernel()
         
 
     def compute_subfield(self):
@@ -118,6 +119,7 @@ class CoarseWignerFunction(WignerFunction):
             dimension 4, we want to find the copy of F4 in F16.
         """
         subfield = []
+        subfield_map = {}
 
         # For now let's concern ourselves only with the square case. 
         # Let the original field have dimension d. Then the subfield has
@@ -125,12 +127,17 @@ class CoarseWignerFunction(WignerFunction):
         if self.coarse_field.dim ** 2 == self.field.dim:
             prim_element = self.field[self.coarse_field.dim + 1]
             subfield = [prim_element ** x for x in range(self.coarse_field.dim)]    
+
+            # Make the subfield map
+            for i in range(len(subfield)):
+                subfield_map[subfield[i]] =  self.coarse_field[i]
+            
         else:
             print("Error, subfield computation unimplemented for non-square \
                 dimensions.")
             return None
 
-        return subfield
+        return subfield, subfield_map
 
 
     def compute_polynomial_basis(self):
@@ -188,21 +195,37 @@ class CoarseWignerFunction(WignerFunction):
             This will be a subset of the fine-grained displacement operators
             which 'survive' a sum.
         """
+        coarse_D = {}
+
         if self.field.p == 2:
             survivors = []
 
             for alpha in self.field:
                 l = [(-1) ** tr(self.cosets[0][i] * alpha) \
-                    for i in len(self.cosets[0])]
+                    for i in range(len(self.cosets[0]))]
                 if sum(l) != 0:
-                    survivors.append(alpha)
+                    survivors.append(alpha.prim_power)
             print(survivors)
+
+            # Collect the surviving operators into a table
+            # Note that the MUB table does not contain identity operators
+            # at the beginning of each row - thus, we will have to take only 
+            # the non-zero survivors, and change the index by -1.
+            surviving_ops = {}
+            for slope in self.subfield:
+                table_row = self.mubs.table[slope.prim_power]
+                surviving_ops[slope.prim_power] = \
+                    [table_row[x-1][0] for x in survivors[1:]]
+
+            # Infinite slope case
+            infty_row = self.mubs.table[-1]
+            surviving_ops["inf"] = [infty_row[x-1][0] for x in survivors[1:]]
 
         else:
             print("Sorry, qudit coarse-graining not currently implemented.")
             return None
 
-
+        return surviving_ops 
 
 
     def compute_coarse_kernel(self):
@@ -216,21 +239,23 @@ class CoarseWignerFunction(WignerFunction):
 
         ckernel = {}
 
-        ckernel_00 = np.zeros((self.dim, self.dim), dtype = np.complex_)
-        if self.field.p != 2:
-            for key in self.coarse_D.keys():
-                ckernel_00 = ckernel_00 + \
-                    (self.coarse_D[key][0].eval() * self.coarse_D[key][1])
-            ckernel_00 = ckernel_00 / self.dim
-            ckernel[(self.coset_reps[0], self.coset_reps[0])] = ckernel_00
-        else:
-            if self.field.n == 1:
-                for key in self.coarse_D.keys():
-                    ckernel_00 = ckernel_00 + \
-                        (self.coarse_D[key][0] * self.coarse_D[key][1])
-                ckernel_00 = ckernel_00 /self.dim
-                ckernel[(self.coset_reps[0], self.coset_reps[0])] = ckernel_00
+        for alpha in range(len(self.subfield)):
+            for beta in range(len(self.subfield)):
+                coarse_point = (self.coarse_field[alpha], \
+                    self.coarse_field[beta])
 
+                mat = np.zeros((self.field.dim, self.field.dim), \
+                    dtype = np.complex_)
+
+                for x in self.cosets[alpha]:
+                    for y in self.cosets[beta]:
+                        fine_point = (x, y)
+                        #mat = mat + self.D[fine_point][0] * \
+                        #    self.D[fine_point][1]
+                        mat = mat + self.kernel[fine_point]
+
+                ckernel[coarse_point] = (1.0 / self.coarse_field.dim) * mat
+                
         return ckernel
                 
 
@@ -243,7 +268,7 @@ class CoarseWignerFunction(WignerFunction):
         """                                                                     
         # For the coarse Wigner function the dimension is that of the 
         # underlying affine plane.
-        W = np.zeros((self.coarse_dim[0], self.coarse_dim[0])) 
+        W = np.zeros((self.coarse_field.dim, self.coarse_field.dim)) 
 
         # Turn kets into density operators if need be.
         if state.shape[0] == 1:                                                 
@@ -251,10 +276,12 @@ class CoarseWignerFunction(WignerFunction):
 
         # The coarse Wigner function is indexed by cosets / coset reps, so
         # loop over these to compute stuff.
-        for a in range(len(self.coset_reps)):
-            for b in range(len(self.coset_reps)):
-                index = (self.coset_reps[a], self.coset_reps[b])
-                mat = np.trace(np.dot(state, self.kernel[index]))              
-                W[a][b] = (1.0 / self.dim) * mat          
+        for a in range(self.coarse_field.dim):
+            for b in range(self.coarse_field.dim):
+                a_in_cf = self.subfield_map[self.subfield[a]] 
+                b_in_cf = self.subfield_map[self.subfield[b]] 
+                index = (a_in_cf, b_in_cf)
+                mat = np.trace(np.dot(state, self.coarse_kernel[index]))              
+                W[a][b] = (1.0 / self.coarse_field.dim) * mat          
 
         return W   
