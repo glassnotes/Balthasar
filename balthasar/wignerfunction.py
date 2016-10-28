@@ -147,7 +147,7 @@ class WignerFunction():
         plt.gca().invert_xaxis()
         plt.xticks(range(0, len(W)))
         plt.yticks(range(0, len(W)))
-        plt.gca().set_zlim([0, 0.25])
+        plt.gca().set_zlim([0, dz.max()])
         plt.show()
 
             
