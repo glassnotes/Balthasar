@@ -21,6 +21,14 @@ class WignerFunction():
         self.field = mubs.field
         self.dim = self.field.dim
         self.mubs = mubs
+
+        if self.mubs.matrices == False:
+            print("Warning: Wigner Function constructed without matrices.")
+            print("This Wigner Function cannot be used for plotting or \
+                any numerical purposes, aside for computing coarse-grained \
+                displacement operators.")
+            return
+
         self.D = mubs.D
         self.kernel = self.compute_kernel()    
 
@@ -30,6 +38,10 @@ class WignerFunction():
             point operators.
         """
         kernel = {} 
+
+        if self.mubs.matrices == False:
+            print("Error, no matrices, cannot compute Wigner Function kernel.")
+            return
 
         # Computation of the kernel can be accomplished by computing the
         # value at point (0, 0), then translating it using the D operators,
@@ -71,6 +83,10 @@ class WignerFunction():
             Input: state, a numpy array representing either a ket or a 
             density matrix.
         """
+        if self.mubs.matrices == False:
+            print("Error, no matrices, cannot compute Wigner Function.")
+            return
+
         W = np.zeros((self.dim, self.dim)) # Holds result
 
         # Don't discriminate - allow the user to submit either a ket vector
@@ -104,7 +120,12 @@ class WignerFunction():
         """
         Plot the Wigner function of a given state.
         """
+    
+        if self.mubs.matrices == False:
+            print("Error, no matrices, cannot plot Wigner function.")
+            return
         
+
         from mpl_toolkits.mplot3d import Axes3D
         import matplotlib.pyplot as plt
 

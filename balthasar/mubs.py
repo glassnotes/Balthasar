@@ -40,15 +40,34 @@ class MUBs():
     """
 
 
-    def __init__(self, f, curves = []):
+    def __init__(self, f, **kwargs):
         """ Initialize a new table of MUBs.
             f is a GaloisField over which we should build the field.
-            Ideally, f is represented in self-dual basis form.
+              
+            f must be represented in the self-dual basis, because it is
+            this trace-orthogonality which allows us to properly factor the
+            monomials in terms of single particle paulis.
+
+            ----- Optional parameters in kwargs -----
+            curves - The user can hand in a set of rays to generate MUBs from.
+                     These must be a valid set of rays, which intersect only
+                     at the point of origin (0, 0). If no curves are specified,
+                     MUBs will be constructed using the Desarguesian rays.
+
+            matrix - Tells whether or not to generate the matrix forms of the
+                     operators or not. This is required to do things like 
+                     generate/plot Wigner functions. This parameter is true
+                     by default. However, for big systems, it takes a long 
+                     time to generate them, and a user who is interested, say,
+                     in only the operator table, or surviving coarse-grained 
+                     operators, might not want to waste time generating them.
+                     Set to 'false' to disable matrices.
         """
         if f.is_sdb() is False:
             print("Warning - you have passed a finite field whose \
                     expansion coefficients are not represented in \
                     the self-dual basis.")
+            return None
 
         # ------------------------------------------------------------
         # Set some obvious parameters
@@ -75,14 +94,20 @@ class MUBs():
                     self.twoinv = el.inv()
         # ------------------------------------------------------------
 
+        self.curves = []
+        self.matrices = True
+
         # Set the curves, default to Desarguesian bundle if nothing passed in 
-        if curves == []: 
-            striations = Striations(self.field)
-            self.curves = striations.get_rays()
-        else: # Curves specified by user
+        if "curves" in kwargs: 
             if self.verify_curves(curves) == True:
                 self.curves = curves 
+        else: # Desarguesian curves
+            self.curves = Striations.generate_rays(f)
 
+        # The 
+        if "matrix" in kwargs:
+            if kwargs["matrix"] == False:
+                self.matrices = False   
 
         # Build the operator table in matrix form at the same time
         self.table, self.D = self.build_operator_table()
@@ -182,25 +207,28 @@ class MUBs():
                         op.append("Z" + ("" if z[idx] == 1 else str(z[idx])) + \
                             "X" + ("" if x[idx] == 1 else str(x[idx])))
 
-                    # Matrix for this chunk of the tensor product
-                    Z_part = np.linalg.matrix_power(Z, z[idx])
-                    X_part = np.linalg.matrix_power(X, x[idx])
-                    op_mats.append(np.dot(Z_part, X_part))
-                        
-                # Tensor together all the matrices 
-                matrix_op = reduce(np.kron, op_mats)
+                    if self.matrices:
+                        # Matrix for this chunk of the tensor product
+                        Z_part = np.linalg.matrix_power(Z, z[idx])
+                        X_part = np.linalg.matrix_power(X, x[idx])
+                        op_mats.append(np.dot(Z_part, X_part))
+                          
+                if self.matrices:
+                    # Tensor together all the matrices if the user wants it
+                    matrix_op = reduce(np.kron, op_mats)
+                    row.append( (op, phase, matrix_op) )
                 
-                # Append the tuple to the row
-                row.append( (op, phase, matrix_op) )
-
-                # Add the displacement operator to the matrix
-                D[(a, b)] = (phase, matrix_op)
+                    # Add the displacement operator to the matrix
+                    D[(a, b)] = (phase, matrix_op)
+                else:
+                    row.append( (op, phase, None) )
 
             table.append(row) # Add rows to the table
 
-            # Finally, add the identity operator to the D table
-            id_phase = self.phi(self.field[0], self.field[0])
-            D[(self.field[0], self.field[0])] = (id_phase, np.identity(self.dim)) 
+            # Finally, add the identity operator to the D table if user wants
+            if self.matrices:
+                id_phase = self.phi(self.field[0], self.field[0])
+                D[(self.field[0], self.field[0])] = (id_phase, np.identity(self.dim)) 
 
         return table, D
 

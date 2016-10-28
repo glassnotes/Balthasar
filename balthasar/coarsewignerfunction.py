@@ -108,6 +108,10 @@ class CoarseWignerFunction(WignerFunction):
         # Compute the coarse displacement operators.
         self.coarse_D = self.compute_coarse_D()
 
+        if self.mubs.matrices == False:
+            print("Warning: coarse Wigner function constructed without matrices.")
+            return
+
         # Using the coarse displacement operators, compute the coarse kernel
         # The points here are indexed by their coset representatives.
         self.coarse_kernel = self.compute_coarse_kernel()
@@ -131,11 +135,22 @@ class CoarseWignerFunction(WignerFunction):
             # Make the subfield map
             for i in range(len(subfield)):
                 subfield_map[subfield[i]] =  self.coarse_field[i]
-            
         else:
-            print("Error, subfield computation unimplemented for non-square \
-                dimensions.")
-            return None
+            # If the dimension is not square, we can only pull out a copy of
+            # what Luis affectionately calls the "mother field", i.e. the
+            # base prime field. These are the elements whos exp_coefs are all
+            # 0 except for the first one. Find these!
+
+            # We need the field in the polynomial basis to do this properly,
+            # because in the self-dual basis the elements are not right form.
+            field_poly_basis = GaloisField(self.field.p, self.field.n, \
+                self.field.coefs)
+
+            for el in field_poly_basis: 
+                if all(a == 0 for a in el.exp_coefs[1:]):
+                    el_in_sdb = self.field[el.prim_power] # "Real" element
+                    subfield.append(el_in_sdb)
+                    subfield_map[el_in_sdb] = self.coarse_field[el.exp_coefs[0]]
 
         return subfield, subfield_map
 
@@ -229,16 +244,18 @@ class CoarseWignerFunction(WignerFunction):
 
 
     def compute_coarse_kernel(self):
-        """ Compute the kernel of the coarse-grained Wigner function. This
-            function is pretty much the same as the one for the normal WF, 
-            but we need to index the kernel by coset representatives rather
-            than plain old field elements this time.
+        """ Compute the kernel of the coarse-grained Wigner function. 
+            This is done by 'globbing' together the fine-grained kernel coset
+            by cosets. The final kernel will be indexed by points in the 
+            subfield, though really I suppose it should be indexed by 
+            coset representatives in a way.
 
-            Returns a dictionary mapping a pair of coset reps (a, b) to w(a,b).
+            Returns a dictionary mapping a pair of coset reps (a, b) to W(a,b).
         """
 
         ckernel = {}
 
+        # Coarse kernel should be indexed by cosets / subfield elements
         for alpha in range(len(self.subfield)):
             for beta in range(len(self.subfield)):
                 coarse_point = (self.coarse_field[alpha], \
@@ -246,12 +263,11 @@ class CoarseWignerFunction(WignerFunction):
 
                 mat = np.zeros((self.field.dim, self.field.dim), \
                     dtype = np.complex_)
-
+                
+                # Sum up the kernel points from the appropriate cosets
                 for x in self.cosets[alpha]:
                     for y in self.cosets[beta]:
                         fine_point = (x, y)
-                        #mat = mat + self.D[fine_point][0] * \
-                        #    self.D[fine_point][1]
                         mat = mat + self.kernel[fine_point]
 
                 ckernel[coarse_point] = (1.0 / self.coarse_field.dim) * mat
@@ -274,8 +290,7 @@ class CoarseWignerFunction(WignerFunction):
         if state.shape[0] == 1:                                                 
             state = np.outer(state, np.conj(state))                             
 
-        # The coarse Wigner function is indexed by cosets / coset reps, so
-        # loop over these to compute stuff.
+        # The coarse Wigner function is indexed by the subfield, so use this.
         for a in range(self.coarse_field.dim):
             for b in range(self.coarse_field.dim):
                 a_in_cf = self.subfield_map[self.subfield[a]] 

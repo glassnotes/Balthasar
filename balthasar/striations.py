@@ -10,6 +10,19 @@ class Striations():
         Striations are essentially stored as a set of Curves over the provided
         finite field.
     """
+    @staticmethod
+    def generate_rays(field):
+        rays = []
+
+        # All normal curves
+        for slope in field:
+            rays.append(Curve([field[0], slope], field))
+        # The vertical curve, in alpha = g(beta) form.
+        rays.append(Curve([field[0], field[0]], field, True))
+
+        return rays
+
+
     def __init__(self, field):
         self.field = field
         self.dim = field.dim
@@ -33,8 +46,7 @@ class Striations():
         self.striations.append(horizontal_striation)
 
         # Store the rays as a set for safekeeping
-        rays = [s[0] for s in self.striations]
-
+        self.rays = [s[0] for s in self.striations]
         
 
     def __iter__(self):
@@ -51,11 +63,6 @@ class Striations():
             return self.striations[index]
         else:
             print("Error, element out of bounds.")
-
-
-    def get_rays(self):
-        """ Get the set of rays only. """
-        return [s[0] for s in self.striations]
 
 
     def plot(self, str_idx = 0, colours = []):
