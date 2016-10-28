@@ -234,7 +234,6 @@ class CoarseWignerFunction(WignerFunction):
                     for i in range(len(self.cosets[0]))]
                 if sum(l) != 0:
                     survivors.append(alpha.prim_power)
-            print(survivors)
 
             # Collect the surviving operators into a table
             # Note that the MUB table does not contain identity operators
