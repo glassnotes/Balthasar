@@ -156,9 +156,18 @@ class CoarseWignerFunction(WignerFunction):
 
 
     def compute_polynomial_basis(self):
-        # Return the polynomial basis
-        return [self.field[x] \
-            for x in range(1, self.field.n)] + [self.field[-1]]
+        """ Return the polynomial basis for coarse graining. 
+            When the dimension isn't square, this 
+            is just the polynomial basis in the 'big' field. When the dim     
+            is square we choose the polynomial basis of the big field wrt     
+            the small field. For example, in dimension 16 coarse-graining to  
+            dimension 4, we choose the basis {1, \sigma} rather than the      
+            full polynomial basis because dimension 16 is 2-dim vector space  
+            over the dim 4 case."""
+        if self.coarse_field.dim ** 2 == self.field.dim: # Square dimensions
+            return [self.field[-1], self.field[1]]
+        else: # Standard polynomial basis
+            return [self.field[-1]] + [self.field[x] for x in range(1, self.field.n)] 
 
 
     def compute_cosets(self):
@@ -172,21 +181,26 @@ class CoarseWignerFunction(WignerFunction):
         if self.mode == "general":
             # In the general mode, for a system p^mn, we can really only take
             # out one copy of p in the most general case by using this method.
+            # However, we can also apply the general mode to square dimensions
+            # By choosing a 'small' basis and use the subfield elements
+            # as coset representatives.
             first_coset = []
 
-            # Compute all linear combinations of all but 1 using the subfield 
-            # First generate all combinations of the coefficients
-            coefficient_lists = product(self.subfield, repeat = self.field.n - 1) 
-            for coeffs in coefficient_list:
-                l_comb = [coeffs[i] * self.basis[i] for i in range(len(coeffs))]
+            # First generate all combinations of the coefficients with the
+            # subfield except the first element (which is 1 in most cases).
+            coefficient_lists = product(self.subfield, repeat = len(self.basis) - 1) 
+            for c in coefficient_lists:
+                l_comb = [c[i-1] * self.basis[i] for i in range(1, len(c) + 1)]
                 s = self.field[0]
                 for el in l_comb:
                     s += el
                 first_coset.append(s)
 
-            # Use the remaining element 
+            for i in range(len(self.subfield)):
+                next_coset = [self.subfield[i] * self.basis[0]
+                    + first_coset[t] for t in range(len(first_coset))]
+                cosets.append(next_coset)
 
-            return first_coset
         else:
             l_om = self.field[1] # Primitive element of original field
             b_om = self.subfield[1] # Primitive element of subfield
