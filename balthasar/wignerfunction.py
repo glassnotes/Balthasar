@@ -1,8 +1,8 @@
+#-*- coding: utf-8 -*-
+
 from pynitefields import *
-from balthasar.striations import Striations
-from functools import reduce
+
 import numpy as np
-import pprint as pp
 
 class WignerFunction():
     """ Class to store and plot a discrete Wigner function.
@@ -35,7 +35,7 @@ class WignerFunction():
          
     def compute_kernel(self):
         """ Compute the 'kernel' of the Wigner function, i.e. the set of 
-            point operators.
+            what Wootters calls point operators.
         """
         kernel = {} 
 
@@ -94,6 +94,10 @@ class WignerFunction():
         if state.shape[0] == 1:
             state = np.outer(state, np.conj(state))
 
+        # We sort the elements of the finite field so that Wigner function
+        # Gets plotted in the "correct" order, i.e. the computational basis
+        # states go 000, 001, 010, etc. and same for the +/- basis. This in 
+        # a way imposes an 'order' on the field elements.
         sorted_els = sorted(self.field.elements)
 
         for a in self.field:
@@ -101,14 +105,13 @@ class WignerFunction():
                 mat = np.trace(np.dot(state, self.kernel[(a, b)]))
                 a_coord = sorted_els.index(a)
                 b_coord = sorted_els.index(b)
-                #W[a.prim_power][b.prim_power] = (1.0 / self.dim) * mat
                 W[a_coord][b_coord] = (1.0 / self.dim) * mat
-                
 
         return W
 
     
     def plot_mat(self, state):
+        """ A simple matrix plot of the Wigner function. """
         import matplotlib.pyplot as plt
         W = self.compute_wf(state)
         plt.matshow(W)
@@ -117,14 +120,17 @@ class WignerFunction():
 
     
     def plot(self, state, filename=""):
-        """
-        Plot the Wigner function of a given state.
+        """ Compute and plot the Wigner function of a given state. 
+            The parameter state can be either a vector or full 
+            density matrix.
+            
+            If a filename is passed as a parameter, the plot function
+            will output the plot to an eps file rather than display it.
         """
     
         if self.mubs.matrices == False:
             print("Error, no matrices, cannot plot Wigner function.")
             return
-        
 
         from mpl_toolkits.mplot3d import Axes3D
         import matplotlib.pyplot as plt
@@ -166,8 +172,19 @@ class WignerFunction():
         ax1.bar3d(xpos, ypos, zpos, dx, dy, dz, color = colours)
 
         plt.gca().invert_xaxis()
-        plt.xticks(range(0, len(W)))
-        plt.yticks(range(0, len(W)))
+
+        # For standard Wigner functions, set the ticks to be basis states.
+        # When the Wigner function gets created it is ordered in this way.
+        if type(self) == WignerFunction:
+            fmt_str = "#0" + str(self.field.n + 2) + "b"
+            comp_basis = [format(x, fmt_str)[2:] for x in range(self.field.dim)]
+            pm_basis = [x.replace('0', '+').replace('1', '\u2013') for x in comp_basis]
+            ax1.set_xticklabels(pm_basis)
+            ax1.set_yticklabels(comp_basis)
+        else:
+            plt.xticks(range(0, len(W)))
+            plt.yticks(range(0, len(W)))
+        
         plt.gca().set_zlim([0, dz.max() + 0.0001])
 
         plt.tight_layout()
@@ -177,6 +194,3 @@ class WignerFunction():
         else:
             plt.savefig(filename, dpi=1200, bbox_inches='tight')
 
-        
-
-            
