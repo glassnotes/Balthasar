@@ -116,7 +116,7 @@ class WignerFunction():
 
 
     
-    def plot(self, state):
+    def plot(self, state, filename=""):
         """
         Plot the Wigner function of a given state.
         """
@@ -168,7 +168,15 @@ class WignerFunction():
         plt.gca().invert_xaxis()
         plt.xticks(range(0, len(W)))
         plt.yticks(range(0, len(W)))
-        plt.gca().set_zlim([0, dz.max()])
-        plt.show()
+        plt.gca().set_zlim([0, dz.max() + 0.0001])
+
+        plt.tight_layout()
+
+        if filename == "":
+            plt.show()
+        else:
+            plt.savefig(filename, dpi=1200, bbox_inches='tight')
+
+        
 
             
