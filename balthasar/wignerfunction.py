@@ -179,15 +179,29 @@ class WignerFunction():
             fmt_str = "#0" + str(self.field.n + 2) + "b"
             comp_basis = [format(x, fmt_str)[2:] for x in range(self.field.dim)]
             pm_basis = [x.replace('0', '+').replace('1', '\u2013') for x in comp_basis]
+
             plt.xticks(range(0, len(W)))
             plt.yticks(range(0, len(W)))
             ax1.set_xticklabels(pm_basis)
             ax1.set_yticklabels(comp_basis)
         else:
+            # Make labels corresponding to the cosets
+            comp_basis = []
+            pm_basis = []
+            for coset in self.cosets:
+                c_labs = ["".join([str(x) for x in el.exp_coefs]) for el in coset]
+                pm = [b.replace('0', '+').replace('1', '\u2013') for b in c_labs]
+
+                comp_basis.append("\n".join(c_labs))
+                pm_basis.append("\n".join(pm))
+
             plt.xticks(range(0, len(W)))
             plt.yticks(range(0, len(W)))
+            ax1.set_xticklabels(pm_basis)
+            ax1.set_yticklabels(comp_basis)
         
         plt.gca().set_zlim([0, dz.max() + 0.0001])
+        plt.tick_params(axis='both', labelsize=5)
 
         plt.tight_layout()
 
