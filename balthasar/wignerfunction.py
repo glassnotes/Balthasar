@@ -179,6 +179,8 @@ class WignerFunction():
             fmt_str = "#0" + str(self.field.n + 2) + "b"
             comp_basis = [format(x, fmt_str)[2:] for x in range(self.field.dim)]
             pm_basis = [x.replace('0', '+').replace('1', '\u2013') for x in comp_basis]
+            plt.xticks(range(0, len(W)))
+            plt.yticks(range(0, len(W)))
             ax1.set_xticklabels(pm_basis)
             ax1.set_yticklabels(comp_basis)
         else:
