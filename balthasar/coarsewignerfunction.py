@@ -310,6 +310,8 @@ class CoarseWignerFunction(WignerFunction):
         # A sorted copy of the subfield for plotting
         sorted_els = sorted(self.coarse_field.elements)
 
+        normalization = self.field.dim / self.coarse_field.dim
+
         # The coarse Wigner function is indexed by the subfield, so use this.
         for alpha in self.subfield: 
             for beta in self.subfield: 
@@ -320,6 +322,6 @@ class CoarseWignerFunction(WignerFunction):
                 a = sorted_els.index(coarse_point[0])
                 b = sorted_els.index(coarse_point[1])
 
-                W[a][b] = (1.0 / self.coarse_field.dim) * mat 
+                W[a][b] = (1.0 / normalization) * mat 
 
         return W   
