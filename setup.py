@@ -7,5 +7,6 @@ setup(name='balthasar',
       author='Olivia Di Matteo',
       author_email='odimatte@uwaterloo.ca',
       license='BSD',
+      package_dir={'': 'src'},
       packages=['balthasar'],
       zip_safe=False)
