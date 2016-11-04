@@ -1,21 +1,28 @@
-from pynitefields import *
 import numpy as np
+
+from pynitefields import *
 
 class LatinSquare():
     """ Class to hold a Latin square.
-        
-        Member variables:
-        p - Prime dimension
-        n - Power of prime 
-        dim - The dimension of the system p^n
-        field - The finite field used to build this square 
-        curve - An object of type Curve stored in the field
-        square - The actual square (stored as a numpy array)
+
+        A Latin square L is computed from a curve :math:`c` according to:
+
+        .. math::
+                    L(\\alpha, \\beta) = \\alpha + c(\\beta)
+      
+        Args:
+            curve (Curve): The curve with which to create the Latin square.
+
+        Attributes:
+            p (int): Prime dimension
+            n (int): Power of prime 
+            dim (int): The dimension of the system :math:`p^n`
+            curve (Curve): The curve with which this square was made 
+            square (array): The actual square (stored as a numpy array)
     """
 
     def __init__(self, curve):
         # Set some obvious parameters
-        self.field = curve.field # Keep a copy of the finite field to do math!
         self.dim = self.field.dim
         self.curve = curve
 
@@ -29,4 +36,6 @@ class LatinSquare():
 
 
     def print(self):
+        """ Prints the Latin square.
+        """
         print(self.square)

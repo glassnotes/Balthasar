@@ -6,6 +6,8 @@
 Welcome to balthasar's documentation!
 =====================================
 
+This documentation is a work in progress.
+
 Contents:
 
 .. toctree::
@@ -13,7 +15,7 @@ Contents:
 
     intro
     tutorial
-    modules
+    classes/index
 
 Indices and tables
 ==================

@@ -6,53 +6,42 @@ from itertools import product
 
 class CoarseWignerFunction(WignerFunction):
     """ Class to store and plot a coarse-grained discrete Wigner function.
-        These are generated from fine-grained discrete Wigner functions by
-        choosing some sort of coset partitioning of the underlying field.
 
-        CoarseWignerFunction inherits from WignerFunction, since once the
-        construction is complete, a lot of the functionality remains the same,
-        e.g. plotting, computing the marginals.
+        CoarseWignerFunction inherits many properties from WignerFunction, 
+        such as the MUBs, field, dimensions, and the original kernel.
 
-        Parameters (inherited):
-        ===========
-        field - The finite field over which the Wigner function is defined
-        dim - The dimension of the system
-        mubs - The MUBs associated with this Wigner function
-        D- The dictionary of displacement operators
-        kernel - Operators at each point in discrete phase space
-        
-        Parameters (new):
-        ===========
-        subfield - The effective subfield within the large field
-        subfield_map - Map between elements of the large field with those
-                       in the small field
-        coarse_dim - A tuple representing the dimensions of the coarse system
-        coset_reps - The coset representatives
-        cosets - The cosets of the finite field (incl. representatives)
-        coarse_D - The new (aggregate) displacement operators
-        coarse_kernel - The operators at each point in the coarse phase space
+        Args:
+            wf (WignerFunction): The Wigner function to coarse-grain.
+            coarse_field (GaloisField): A field over which to perform 
+                                        coarse-graining. 
+
+        Keyword Args:
+            mode (string): There are two modes for coarse-graining, "general",
+                           or "subfield". The default mode is "general"; for
+                           square dimensions it is also possible to coset using
+                           the subfield.
+            basis (list of FieldElement): A user-specified basis of the field
+                                          in which to perform coarse-graining.
+                                          If unspecified, default is the 
+                                          polynomial basis. Only valid for the
+                                          "general" mode.
+            cosets (list of lists): A user-specified partitioning of the 
+                                    finite field to use as the cosets for
+                                    coarse-graining. Use with caution, as no
+                                    perfect checking mechanisms are implemeneted.
+            
+        Attributes:
+            subfield (list): The effective subfield within the large field
+            subfield_map (list): Map between elements of the large field with those
+                                 in the coarse field
+            cosets (list of lists): The set of cosets of the big finite field
+            coarse_D (dictionary): Surviving displacement operators, indexed by 
+                                   points in the coarse-grained space.
+            coarse_kernel (dictionary): The kernel operators for the coarse-
+                                        grained Wigner function.
     """
 
     def __init__(self, wf, coarse_field, **kwargs):
-        """ Initialize a coarse-grained Wigner function based on a 
-            fine-grained one.
-
-            ----- Mandatory parameters -----
-            wf - A fine-grained, i.e. normal, Wigner function
-            coarse_field - The effective field after we've coarse-grained.
-                           This allows us to specify how we want the 
-                           coarse-graining to proceed.
-            --------------------------------
-
-            ----- Optional parameters in kwargs -----
-            basis - Specify an alternate basis to do coarse graining over.
-                    Default is the polynomial basis.
-            cosets - A set of cosets to use. Will default to a standard
-                     choice unless user provides a full set.
-            mode - 'general' or 'subfield'. General mode works for any dim,
-                    but subfield mode works only for square dimensions. 
-            --------------------------------
-        """
         # Initialize all the standard parameters
         WignerFunction.__init__(self, wf.mubs)
 
@@ -161,13 +150,14 @@ class CoarseWignerFunction(WignerFunction):
 
     def compute_polynomial_basis(self):
         """ Return the polynomial basis for coarse graining. 
-            When the dimension isn't square, this 
-            is just the polynomial basis in the 'big' field. When the dim     
-            is square we choose the polynomial basis of the big field wrt     
-            the small field. For example, in dimension 16 coarse-graining to  
-            dimension 4, we choose the basis {1, \sigma} rather than the      
-            full polynomial basis because dimension 16 is 2-dim vector space  
-            over the dim 4 case."""
+
+            When the dimension isn't square, this is just the polynomial basis 
+            in the 'big' field. When it is square, we choose the polynomial 
+            basis of the big field with respect to the small field. 
+            For example, in dimension 16 coarse-graining to dimension 4, we 
+            choose the basis :math:`\{1, \\sigma\}` rather than the full poly 
+            basis because dim 16 is a 2-dim vector space over the dim 4 case.
+        """
         if self.coarse_field.dim ** 2 == self.field.dim: # Square dimensions
             return [self.field[-1], self.field[1]]
         else: # Standard polynomial basis
@@ -175,10 +165,12 @@ class CoarseWignerFunction(WignerFunction):
 
 
     def compute_cosets(self):
-        """ Compute a set of coset representatives if the user doesn't 
-            provide one. Two cases to consider here, one where there is
-            a basis provided to make the cosets, the other where we use the
-            subfield.
+        """ Coset the large finite field over the coarse-grained one. 
+            
+            Two cases to consider here, one where there is a basis provided 
+            to make the cosets, the other where we use the subfield.
+
+            Details can be found in our manuscript.
         """
         cosets = []
 
@@ -225,8 +217,9 @@ class CoarseWignerFunction(WignerFunction):
 
     def compute_coarse_D(self):
         """ Compute the coarse-grained displacement operators. 
+
             This will be a subset of the fine-grained displacement operators
-            which 'survive' a sum.
+            which 'survive' the sum of eq. x in our paper.
         """
         coarse_D = {}
 
@@ -262,12 +255,17 @@ class CoarseWignerFunction(WignerFunction):
 
     def compute_coarse_kernel(self):
         """ Compute the kernel of the coarse-grained Wigner function. 
-            This is done by 'globbing' together the fine-grained kernel coset
-            by cosets. The final kernel will be indexed by points in the 
-            subfield, though really I suppose it should be indexed by 
-            coset representatives in a way.
 
-            Returns a dictionary mapping a pair of coset reps (a, b) to W(a,b).
+            This is done by 'globbing' together the fine-grained kernel coset
+            by coset: 
+
+            .. math::
+
+              \Delta_c(C_i, C_j) = \sum_{\\alpha \in C_i} \sum_{\\beta \in C_j} \Delta(\\alpha, \\beta)
+
+            The final kernel will be indexed by points in the subfield here, 
+            though really it should be indexed by coset representatives.
+
         """
 
         ckernel = {}
@@ -294,11 +292,21 @@ class CoarseWignerFunction(WignerFunction):
 
 
     def compute_wf(self, state):                                                
-        """ Compute the probabilities in the coarse Wigner function for a 
-             given state. 
-             Input: state, a numpy array representing either a ket or a 
-             density matrix.
+        """ Compute the coarse Wigner function for a given state.
+
+            The idea there is the same as for the normal Wigner function, 
+            except the matrix will have the dimensions of the coarse field.
+
+            Args:                                                               
+                state (np array/matrix): The state to compute the Wigner Function
+                                         of. This is a numpy array and can      
+                                         either be a vector, or a full density  
+                                         matrix.                                
+
+            Returns:
+                A numpy matrix which is the coarse Wigner function of the state.
         """                                                                     
+
         # For the coarse Wigner function the dimension is that of the 
         # underlying affine plane.
         W = np.zeros((self.coarse_field.dim, self.coarse_field.dim)) 

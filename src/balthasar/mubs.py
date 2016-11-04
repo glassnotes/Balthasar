@@ -1,15 +1,137 @@
-from pynitefields import *
-from balthasar.curve import Curve 
-from balthasar.striations import Striations
-import numpy as np
 from functools import reduce
 from operator import mul
 
+import numpy as np
+from pynitefields import *
+
+from balthasar.curve import Curve 
+from balthasar.striations import Striations
+
 class MUBs():
-    """ Class to hold a complete set of mutually unbiased bases (MUBs)
-        in a specified dimension. Currently, class MUBs fully supports only 
+    """ Class to hold a complete set of mutually unbiased bases (MUBs).
+
+        Args:
+            f (GaloisField): The finite field over which the MUBs will be 
+                             constructed. Must be expressed in self-dual basis.
+
+        Class MUBs also takes the following keyword arguments.
+
+        Keyword Args:
+            curves (list): Advanced functionality. Pass a full set of curves 
+                           with which to create the MUB table. By default the
+                           set of linear curves is used.
+            matrix (bool): Tells Balthasar whether to construct the full
+                           numerical matrices for the MUB operators. True
+                           by default.
+
+        Class MUBs contains the following public attributes.
+
+        Attributes:
+            field (GaloisField): The finite field of choice 
+            p (int): A prime number, the dimension of a single particle
+            n (int): The number of particles
+            dim (int): The dimension of the system dim = :math:`p^n`
+            w (pthRootOfUnity): The :math:`p^{th}` root of unity in the field.
+            curves (list of Curves): The set of curves used to construct the table
+            table: The table of operators, in form (name, phase, matrix)
+            D (dictionary): Table of displacement operators, mapping of points
+                            in phase space to the associated (phase, matrix)
+            matrices (bool): Default true. Constructs the matrices associated
+                            with the operators. If set to false, only the 
+                            string representations of the operators is computed.
+
+        Currently, class MUBs fully supports only 
         qubit systems (i.e. systems of dimension :math:`2^n`).
-        
+         
+    """
+
+    def __init__(self, f, **kwargs):
+        if f.is_sdb() is False:
+            print("Warning - you have passed a finite field whose \
+                    expansion coefficients are not represented in \
+                    the self-dual basis.")
+            return None
+
+        # Set the attributes that depend on the field
+        self.field = f # Keep a copy of the finite field to do math!
+        self.p = f.p 
+        self.n = f.n
+        self.dim = f.dim
+        self.w = f.w
+
+        # Initialize MUB specific attributes
+        self.curves = [] # Which curves to use
+        self.table = [] # Operator table in operator form
+        self.D = {} # Dictionary of displacement operators
+        self.matrices = True # Compute matrix reps of operators 
+
+        # The following code is useful only for odd-prime powers.
+        # Find and store the inverse of two only once, to later compute phases.
+        self.twoinv = None
+        if self.p != 2: # Easy to find for prime dimensions
+            if self.n == 1:
+                self.twoinv = self.field[2].inv()
+            else: # Use polynomial basis expansion to find 2
+                field_polybasis = GaloisField(f.p, f.n, f.coefs)
+                for el in field_polybasis:
+                  if el.exp_coefs == ([2] + ([0] * (self.n -1))): 
+                    self.twoinv = el.inv()
+
+        # Deal with the keyword arguments
+        # Set the curves, default to Desarguesian bundle if nothing passed in 
+        if "curves" in kwargs: 
+            if self.verify_curves(curves) == True:
+                self.curves = curves 
+        else: # Desarguesian curves
+            self.curves = Striations.generate_rays(f)
+
+        # Determine whether to compute the matrix or not.
+        if "matrix" in kwargs:
+            if kwargs["matrix"] == False:
+                self.matrices = False   
+
+        # Build the operator table in matrix form at the same time
+        self.table, self.D = self.build_operator_table()
+
+
+    def phi(self, a, b):
+        """ Phase function for the displacement operators.
+
+            Arguments:
+                a (FieldElement): Horizontal coordinate in phase-space
+                b (FieldElement): Vertical coordinate in phase-space
+
+            Returns:
+                The value of :math:`\Phi(a, b)`.
+
+            Handles every case: single- and multiple-qubit and qudit. 
+            For qubit cases the phase is expressed as a number. For qudit
+            cases the phase is returned as a power of the pth root of unity.
+            Currently, the phase functions are expressed as follows:
+
+            ==========   ==============================================================
+            Qubits       :math:`\Phi(\\alpha, \\beta) = i^{\\text{tr}(\\alpha \\beta)}`       
+            Qudits       :math:`\Phi(\\alpha, \\beta) = \chi(2^{-1} \\alpha \\beta)`
+            ==========   ==============================================================
+            
+        """
+
+        if self.p == 2: # Qubits
+            if self.n == 1: # Single qubit case, +/- i^ab
+                return 1j ** (a * b).prim_power
+            else: 
+                return 1j ** tr(a * b)
+        else: # Qudits
+            if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
+                prefactor = (self.twoinv * a * b).prim_power
+                return pow(self.w, prefactor) 
+            else: # Multiple qudits
+                return gchar(self.twoinv * a * b)
+
+
+    def build_operator_table(self):
+        """ Construct the table of MUB operators.
+
         MUBs are commonly represented in two forms: collections of mutually
         unbiased basis vectors, or a table of disjoint, commuting operators 
         whose sets of mutual eigenvectors are mutually unbiased bases.
@@ -29,12 +151,13 @@ class MUBs():
         The two operators Z and X are defined as having the action
         
         .. math::
-
-              Z_\\alpha |\ell> = \omega(\\a \ell) |\ell>, 
-              X_\\beta |\ell> = |\ell + \\beta>.
+ 
+              Z_\\alpha |\ell \\rangle = \omega(\\alpha \ell) |\ell \\rangle, \quad
+              X_\\beta |\ell \\rangle = |\ell + \\beta \\rangle.
               
         For a single qubit these operators are exactly equal to the Pauli
-        operators; for multiple qubits, tensor products thereof.
+        operators; for multiple qubits, tensor products thereof. Similarly 
+        for qudits, they are the generalized Paulis and tensor products thereof.
         These operators satisfy the Heisenberg-Weyl commutation relations, i.e.
 
         .. math::
@@ -44,160 +167,55 @@ class MUBs():
 
         .. math::
               
-              \chi(\\alpha) = \exp(2 \pi i / p^n) ^ tr(\\alpha)
+             \chi(\\alpha) = \omega ^ {\\text{tr}(\\alpha)}
 
-        is the character of the field, and the trace of a field element is 
+        is the character of the field, and :math:`\omega` is the pth root of 
+        unity, :math:`\exp \\left(\\frac{2 \\pi i}{p} \\right)`.
+        
+        The trace of a field element is 
+
+        .. math::
+ 
+            \\text{tr}(\\alpha) = \\alpha + \\alpha^p + \cdots + \\alpha^{p^n - 1},
+
+        and always yields an element of the mother (base prime) field.
+
+        We can expand :math:`\\alpha` and :math:`\\beta` in terms of a self-
+        dual basis :math:`\{\\theta_1, \ldots, \\theta_n\}`:
 
         .. math::
 
-            tr(\\alpha) = \\alpha + \\alpha^p + \cdots + \\alpha^{p^n - 1}
+            \\alpha = \sum_{i=1}^n (a_i \\theta_i), \quad  
+            \\beta = \sum_{i=1}^n (b_i \\theta_i),
 
-        in prime dimensions (where w represents the p^th root of unity), 
-        and similarly in composite dimensions but w is replaced by the group
-        character. For qubits Z and X are the simple Pauli operators. For
-        qudits they are the generalized Paulis.
-        These guys will be stored as tuples containing the phase factors
-        separately because they're not always needed, i.e.
-                      ( op_name,  phi(a, b), Z_a * X_b )
+        where :math:`a_i = \\text{tr}(\\alpha \\theta_i)` and similarly for the 
+        :math:`b_i`. With this, we can express the :math:`Z_\\alpha X_\\beta` 
+        in tensor product form:
+
+        .. math::
+
+            Z_\\alpha X_\\beta = Z^{a_1} X^{b_1} \otimes \cdots \otimes Z^{a_n} X^{b_n}
+
+
+        In a way, we can consider this as assigning each self-dual basis 
+        element to a single particle.
+
+        Displacement operators will be stored in a dictionary of tuples,
+        indexed by the coordinates in phase space :math:`(\\alpha, \\beta)`.
+        The values have the form
+
+         (name, :math:`\Phi(\\alpha, \\beta)`, :math:`Z_\\alpha X_\\beta`)
        
+        Here name will be something like "Z ZX X", or a string representing
+        the tensor product structure above. The phase factor is included 
+        separately from the matrix because they're not always needed.
+
+        
         By default, we will produce MUBs of the Desarguesian form, 
-        where beta = lambda alpha.
+        where :math:`\\beta = \lambda \\alpha`.
 
-        Attributes:
-            field (GaloisField): The finite field of choice 
-            p (int): A prime number, the dimension of a single particle
-            n (int): The number of particles
-            dim (int): The dimension of the system dim = :math:`p^n`
-            w (pthRootOfUnity): The :math:`p^{th}` root of unity in the field.
-            curves (list of Curves): The set of curves used to construct the table
-            table: The table of operators, in form (name, phase, matrix)
-            D (dictionary): Table of displacement operators, mapping of points
-                            in phase space to the associated (phase, matrix)
-            matrices (bool): Default true. Constructs the matrices associated
-                             with the operators. If set to false, only the 
-                             string representations of the operators is computed.
-
-    """
-
-    def __init__(self, f, **kwargs):
-        """ Initialize a new table of MUBs.
-            f is a GaloisField over which we should build the field.
-              
-            f must be represented in the self-dual basis, because it is
-            this trace-orthogonality which allows us to properly factor the
-            monomials in terms of single particle paulis.
-
-            ----- Optional parameters in kwargs -----
-            curves - The user can hand in a set of rays to generate MUBs from.
-                     These must be a valid set of rays, which intersect only
-                     at the point of origin (0, 0). If no curves are specified,
-                     MUBs will be constructed using the Desarguesian rays.
-
-            matrix - Tells whether or not to generate the matrix forms of the
-                     operators or not. This is required to do things like 
-                     generate/plot Wigner functions. This parameter is true
-                     by default. However, for big systems, it takes a long 
-                     time to generate them, and a user who is interested, say,
-                     in only the operator table, or surviving coarse-grained 
-                     operators, might not want to waste time generating them.
-                     Set to 'false' to disable matrices.
         """
-        if f.is_sdb() is False:
-            print("Warning - you have passed a finite field whose \
-                    expansion coefficients are not represented in \
-                    the self-dual basis.")
-            return None
 
-        # ------------------------------------------------------------
-        # Set some obvious parameters
-        self.field = f # Keep a copy of the finite field to do math!
-        self.p = f.p 
-        self.n = f.n
-        self.dim = f.dim
-        self.w = f.w
-
-        # Declaring these parameters here so we see them all together 
-        self.curves = [] # Which curves to use
-        self.table = [] # Operator table in operator form
-        self.D = {} # Dictionary of displacement operators
-
-        # Find and store the inverse of two only once, since we need
-        # it in all our phases for odd primes
-        self.twoinv = None
-        if self.p != 2:
-            if self.n == 1:
-                self.twoinv = self.field[2].inv()
-            else:
-                for el in self.field:
-                  if el.exp_coefs == ([2] + ([0] * (self.n -1))):
-                    self.twoinv = el.inv()
-        # ------------------------------------------------------------
-
-        self.curves = []
-        self.matrices = True
-
-        # Set the curves, default to Desarguesian bundle if nothing passed in 
-        if "curves" in kwargs: 
-            if self.verify_curves(curves) == True:
-                self.curves = curves 
-        else: # Desarguesian curves
-            self.curves = Striations.generate_rays(f)
-
-        # The 
-        if "matrix" in kwargs:
-            if kwargs["matrix"] == False:
-                self.matrices = False   
-
-        # Build the operator table in matrix form at the same time
-        self.table, self.D = self.build_operator_table()
-
-
-
-    def phi(self, a, b):
-        """ Phase function for the displacement operators.
-            Handles every case (p odd/even, single/multi-qudit).
-            Returns phase as either number, for qubits, or as a power
-            of a pth root of unity for qudits.
-
-            The phase condition in general for the displacement operators
-            is that they must satisfy
-                        phi^2(a, b) = gchar(-ab)
-            Of course for qubits this becomes
-                        phi^2(a, b) = gchar(ab)
-            and ends up reducing to some powers of i.
-        """
-        if self.p == 2: # Qubits
-            if self.n == 1: # Single qubit case, +/- i^ab
-                return 1j ** (a * b).prim_power
-            else: 
-                return 1j ** tr(a * b)
-        else: # Qudits
-            if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
-                prefactor = (self.twoinv * a * b).prim_power
-                return pow(self.w, prefactor) 
-            else: # Multiple qudits
-                return gchar(self.twoinv * a * b)
-
-
-    def build_operator_table(self):
-        """ Actually construct the operator table for the MUBs.
-            This will be done using the displacement operators.
-
-            We will consider our matrices of the form
-                D(a, b) = phi(a, b) Z_a X_b 
-            where a and b are field elements.
-
-            We can further break this down by considering everything
-            as an n-particle system, i.e.
-                  b = sum (b_i theta_i), a = sum (a_i theta_i)
-            for the expansions in the (almost) self-dual basis. Then,
-                Z_a X_b = Z^a1 X^b1 \otimes ... \otimes Z^an X^bn
-            where Z, X are the generalized Paulis.
-
-            Note that this decomposition works only when there is 
-            a true self-dual basis. For almost self-dual bases we will need
-            to do something different.
-        """
         table = []
         D = {}
 
@@ -273,7 +291,12 @@ class MUBs():
 
 
     def verify_curves(self, curves):
-        """ TODO check that the properties of the provided curves are valid
+        """ Check that the properties of user-provided curves are valid.
+          
+            Curves must be additive and commutative.
+
+            TODO: everything. Currently the only thing that is checked 
+            is whether there are enough curves.
         """
         if len(curves) != self.dim + 1:
             print("Error, not enough curves provided.")
@@ -282,6 +305,13 @@ class MUBs():
 
 
     def print(self, matrix_form = False):
+        """ Print a nice(-ish) formatted MUB table.
+
+            Args:
+                matrix_form (bool): If set to True, will print out the matrices
+                                    as well as the operator names.
+        """
+
         np.set_printoptions(precision=4, threshold=np.nan, suppress=True)
         for row in self.table:
             for operator in row:

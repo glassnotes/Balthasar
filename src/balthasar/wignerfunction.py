@@ -7,17 +7,23 @@ import numpy as np
 class WignerFunction():
     """ Class to store and plot a discrete Wigner function.
 
-        Parameters:
-        ===========
-        field - The finite field over which the Wigner function is defined
-        dim - The dimension of the system 
-        mubs - The MUBs associated with this Wigner function
-        D - The dictionary of displacement operators
-        kernel - Operators at each point in discrete phase space ('point ops')
+        Args:
+            mubs (MUBs): A set of MUBs. The displacement operators will
+                         be used to construct the Wigner function kernel.
+                         If the 'matrices' option in MUBs is False, no kernel
+                         will be produced.
+
+        Attributes:
+            field (GaloisField): The finite field over which the Wigner 
+                                 function is defined
+            dim (int): The dimension of the system 
+            mubs (MUBs): The MUBs used to construct this Wigner function
+            D (dictionary): The dictionary of displacement operators
+            kernel (dictionary): Operators at each point in discrete phase 
+                                 space ('point operators' according to Wootters)
     """
 
     def __init__(self, mubs):
-        """ Initialize the Wigner function and compute the point operators. """
         self.field = mubs.field
         self.dim = self.field.dim
         self.mubs = mubs
@@ -30,13 +36,36 @@ class WignerFunction():
             return
 
         self.D = mubs.D
+
+        # Compute the kernel
         self.kernel = self.compute_kernel()    
 
          
     def compute_kernel(self):
         """ Compute the 'kernel' of the Wigner function, i.e. the set of 
             what Wootters calls point operators.
+
+            The kernel is a set of operators associated to each point in 
+            phase space, :math:`\Delta(\\alpha, \\beta)`. The operator at the
+            origin is computed as the sum of all the displacement operators:
+
+            .. math::
+
+                \Delta(0, 0) = \\frac{1}{p^n} \sum_{\\alpha, \\beta} D(\\alpha, \\beta)
+
+            The kernel operator at any other point can be computed by
+            translating that of the origin by the appropriate displacement
+            operator:
+
+            .. math ::
+
+                \Delta(\\alpha, \\beta) = D(\\alpha, \\beta) \Delta(0, 0) D^\dagger (\\alpha, \\beta)
+
+            Returns:
+                A dictionary containing the mapping from points :math:`(\\alpha, \\beta)`
+                to the operator :math:`\Delta(\\alpha, \\beta)`.
         """
+
         kernel = {} 
 
         if self.mubs.matrices == False:
@@ -48,7 +77,7 @@ class WignerFunction():
         # i.e.        w(a, b) = D(a, b) w(0, 0) D(a, b)^\dag
           
         kernel_00 = np.zeros((self.dim, self.dim), dtype=np.complex_)
-        if self.field.p != 2:
+        if self.field.p != 2: # Special case, need numerical values of pthrootofunity
             for key in self.D.keys():
                 kernel_00 = kernel_00 + (self.D[key][0].eval() * self.D[key][1])
             kernel_00 = kernel_00 / self.dim
@@ -79,10 +108,25 @@ class WignerFunction():
                             
                                 
     def compute_wf(self, state):
-        """ Compute the probabilities in the Wigner function for a given state.
-            Input: state, a numpy array representing either a ket or a 
-            density matrix.
+        """ Compute the Wigner function for a given state.
+
+            For a state :math:`\\rho`, the value of the Wigner function at
+            a point :math:`(\\alpha, \\beta)` is given by
+
+            .. math::
+
+                W_\\rho (\\alpha, \\beta) = \\text{Tr}(\\rho \Delta(\\alpha, \\beta))
+
+            Args:
+                state (np array/matrix): The state to compute the Wigner Function
+                                         of. This is a numpy array and can 
+                                         either be a vector, or a full density
+                                         matrix.
+
+            Returns:
+                A numpy matrix which is the Wigner function of the passed state.
         """
+
         if self.mubs.matrices == False:
             print("Error, no matrices, cannot compute Wigner Function.")
             return
@@ -111,7 +155,14 @@ class WignerFunction():
 
     
     def plot_mat(self, state):
-        """ A simple matrix plot of the Wigner function. """
+        """ A simple matrix plot of the Wigner function. 
+        
+            Args:
+                state (np array/matrix): The state to compute the Wigner Function
+                                         of. This is a numpy array and can 
+                                         either be a vector, or a full density
+                                         matrix.
+        """
         import matplotlib.pyplot as plt
         W = self.compute_wf(state)
         plt.matshow(W)
@@ -121,11 +172,21 @@ class WignerFunction():
     
     def plot(self, state, filename=""):
         """ Compute and plot the Wigner function of a given state. 
-            The parameter state can be either a vector or full 
-            density matrix.
-            
-            If a filename is passed as a parameter, the plot function
-            will output the plot to an eps file rather than display it.
+
+            The plot is a 3D representation of the phase space with the axes
+            labeled by kets in the computational and +/- basis.
+
+            For the CoarseWignerFunction class, the axes are labeled by groups
+            of kets in the same coset.
+
+            Args:
+                state (np array/matrix): The state to compute the Wigner Function
+                                         of. This is a numpy array and can 
+                                         either be a vector, or a full density
+                                         matrix.
+                filename (string): If a filename is passed, the Wigner function
+                                   plot will not be displayed on screen, but
+                                   instead saved as an eps file.
         """
     
         if self.mubs.matrices == False:

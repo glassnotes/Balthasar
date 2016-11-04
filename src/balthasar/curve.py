@@ -1,28 +1,41 @@
 from pynitefields import *
 
 class Curve():
-    """ Class to hold all points in a curve.
-        Parameters:
-        field - The finite field in which is curve is defined
-        coefs - Coe
-        form - beta or alpha, tells whether to do the curve as beta = f(alpha) or alpha = f(beta).
-               By default, we use the beta form, beta = f(alpha).
-        is_ray - A Boolean which tells you whether the curve passes through the point (0, 0) or not
-        points - A list of tuples of field elements which are the points of this curve over the field.
+    """ Class to hold all points in a curve. 
+
+        Curves are sets of points of the form :math:`(\\alpha, c(\\alpha)` for
+        all :math:`\\alpha` in a specified GaloisField, where
+
+        .. math::
+          c(\\alpha) = c_0 + c_1 \\alpha + c_2 \\alpha^2 + ...
+
+        They are constructed by passing in a list of coefficients in the form
+        :math:`[c_0, c_1, c_2, \ldots]`.
+
+        Args:
+            coefs (list): The coefficients of the curve. 
+            field (GaloisField): The field over which the curve is defined.
+
+        Attributes:
+            field (GaloisField): The finite field in which is curve is defined
+            coefs (list): The coefficients :math:`[c_0, c_1, \ldots]`.
+            form (string): "beta" or "alpha", tells whether to do the curve 
+                           as :math:`beta = f(alpha) or alpha = f(beta).
+                           By default, we use the beta form, beta = f(alpha).
+            is_ray (bool): A Boolean which indicates whether the curve passes 
+                           through the point (0, 0) or not
+            points (list): A list of tuples of field elements which are the 
+                           points of this curve over the field.
     """
-    def __init__(self, coefs, field, reverse=False):
-        """
-        Parameters:
-        """
+
+    def __init__(self, coefs, field, form="beta"):
         self.field = field
         self.coefs = coefs
-        self.form = "beta" # Default curve in form beta (alpha)
+        self.form = form # Default curve in form beta (alpha)
         self.is_ray = False # Does it pass through 0, 0
         self.points = [] # List of points as tuples
 
-        if reverse == True: # Curve in form alpha (beta)
-            self.form = "alpha"
-
+        # Determine if the curve is a ray by checking the constant term 
         if type(coefs[0]) is int:
             if coefs[0] == 0:
                 self.is_ray = True
@@ -30,6 +43,7 @@ class Curve():
             if coefs[0] == self.field[0]:
                 self.is_ray = True
 
+        # Compute all the points on the curve
         for el in field:
             if self.form == "beta":
                 self.points.append( (el, field.evaluate(coefs, el)) )
@@ -38,7 +52,18 @@ class Curve():
 
 
     def __getitem__(self, index):
-        if index < len(self.points):
+        """ Get a point on the curve.
+
+            Args:
+                index (int): The index at which we would like to
+                             find the value on the curve. Expressed as a power
+                             of the primitive element of the field.
+
+            Returns:
+                The tuple (index, value of the curve at index).
+        """
+
+        if index < len(self.points) and index >= 0:
             return self.points[index]
         else:
             print("Error, element out of bounds.")
@@ -50,6 +75,14 @@ class Curve():
 
 
     def print(self, as_points = False):
+        """ Print the curve.
+
+        Args:
+            as_points (bool): If True is passed, will print the list of 
+                              points on the curve as tuples. By default, prints
+                              the curves as a polynomial.
+
+        """
         if as_points == True: # Print the curve as a list of points
             for point in self.points:
                 print(str(point[0].prim_power) + ", " + str(point[1].prim_power), end = "\t")
