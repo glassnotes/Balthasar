@@ -49,8 +49,9 @@ class Striations():
         # All normal curves
         for slope in field:
             rays.append(Curve([field[0], slope], field))
+
         # The vertical curve, in alpha = g(beta) form.
-        rays.append(Curve([field[0], field[0]], field, True))
+        rays.append(Curve([field[0], field[0]], field, "alpha"))
 
         return rays
 
