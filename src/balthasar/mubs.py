@@ -176,7 +176,7 @@ class MUBs():
 
         .. math::
  
-            \\text{tr}(\\alpha) = \\alpha + \\alpha^p + \cdots + \\alpha^{p^n - 1},
+            \\text{tr}(\\alpha) = \\alpha + \\alpha^p + \cdots + \\alpha^{p^{n - 1}},
 
         and always yields an element of the mother (base prime) field.
 
