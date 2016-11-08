@@ -94,6 +94,7 @@ class MUBs():
         self.table, self.D = self.build_operator_table()
 
 
+
     def phi(self, a, b):
         """ Phase function for the displacement operators.
 
@@ -109,24 +110,71 @@ class MUBs():
             cases the phase is returned as a power of the pth root of unity.
             Currently, the phase functions are expressed as follows:
 
-            ==========   ==============================================================
-            Qubits       :math:`\Phi(\\alpha, \\beta) = i^{\\text{tr}(\\alpha \\beta)}`       
-            Qudits       :math:`\Phi(\\alpha, \\beta) = \chi(2^{-1} \\alpha \\beta)`
-            ==========   ==============================================================
-            
+            .. math::
+
+              \Phi(\\alpha, \\beta) = (-1)^f(\\alpha \\beta)i^{\\text{tr}(\\alpha \\beta)}
+
+            where :math:`f(x)` is a recursively defined polynomial which we
+            implement separately in rec_p.
         """
 
         if self.p == 2: # Qubits
             if self.n == 1: # Single qubit case, +/- i^ab
                 return 1j ** (a * b).prim_power
             else: 
-                return 1j ** tr(a * b)
+                poly_res = self.rec_p(self.n, a * b)
+                m1_exponent = 0
+
+                # We need to convert the result of the into an integer.
+                # If it is element 0 map to int 0, 1 then map to int 1.
+                # We can't just use the trace for this because the trace of 1
+                # is not 1 in every field.
+                if poly_res == self.field[0]:
+                    m1_exponent = 0
+                elif poly_res == self.field[-1]:
+                    m1_exponent = 1
+                else:
+                    print("Error evaluating recursive polynomial.")
+                    print("Result was not 0 or 1.")
+
+                return ((-1) ** m1_exponent) * (1j ** tr(a * b))
         else: # Qudits
             if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
                 prefactor = (self.twoinv * a * b).prim_power
                 return pow(self.w, prefactor) 
             else: # Multiple qudits
                 return gchar(self.twoinv * a * b)
+
+
+    def rec_p(self, m, x):
+        """ A phase factor which ensures our displacement operators
+            sum to proper projectors.
+
+            This portion fo the phase is a polynomial over field elements
+            and is recursively defined. We let :math:`f_0(x) = f_1(x) = 0`.
+            Then we define
+
+            .. math::
+            
+              f_{m+1}(x) = (f_m - f_{m-1})(x^2) + x^{2^m + 1) + f_m(x)
+
+            Args:
+                m (int): The level of recursion (this should start as the
+                         number of qubits).
+                x (FieldElement): The argument of the function.
+
+            Returns:
+                The value of :math:`f_m(x)` as defined above. This will be a
+                field element and is either 0 or 1.
+        """
+
+        # Base case f_0 (x) = f_1(x) = 0
+        if m == 0 or m == 1:
+            return self.field[0] 
+
+        else:
+            return self.rec_p(m - 1, pow(x, 2)) - self.rec_p(m - 2, pow(x, 2)) \
+                + pow(x, pow(2, m - 1) + 1) + self.rec_p(m - 1, x)
 
 
     def build_operator_table(self):
