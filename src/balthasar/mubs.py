@@ -112,14 +112,14 @@ class MUBs():
               \Phi(\\alpha, \\beta) = (-1)^{f(\\alpha \\beta)}i^{\\text{tr}(\\alpha \\beta)}
 
             where :math:`f(x)` is a recursively defined polynomial which we
-            implement separately in rec_p.
+            implement separately in f_m.
         """
 
         if self.p == 2: # Qubits
             if self.n == 1: # Single qubit case, +/- i^ab
                 return 1j ** (a * b).prim_power
             else: 
-                poly_res = self.rec_p(self.n, a * b)
+                poly_res = self.f_m(self.n, a * b)
 
                 if poly_res == None:
                     print("Error evaluating recursive polynomial.")
@@ -135,7 +135,7 @@ class MUBs():
                 return gchar(self.twoinv * a * b)
 
 
-    def rec_p(self, m, x):
+    def f_m(self, m, x):
         """ A phase factor which ensures our displacement operators
             sum to proper projectors.
 
