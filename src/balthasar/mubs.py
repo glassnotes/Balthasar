@@ -111,8 +111,9 @@ class MUBs():
 
               \Phi(\\alpha, \\beta) = (-1)^{f(\\alpha \\beta)}i^{\\text{tr}(\\alpha \\beta)}
 
-            where :math:`f(x)` is a recursively defined polynomial which we
-            implement separately in f_m.
+            where :math:`f(x)` is the companion function f_m which determines
+            the sign of the displacement operators (so that we never end up 
+            with the negative identity).
         """
 
         if self.p == 2: # Qubits
@@ -139,9 +140,8 @@ class MUBs():
         """ A phase factor which ensures our displacement operators
             sum to proper projectors.
 
-            This portion fo the phase is a polynomial over field elements
-            and is recursively defined. We let :math:`f_0(x) = f_1(x) = 0`.
-            Then we define
+            This portion of the phase is a polynomial over field elements
+            We let :math:`f_0(x) = f_1(x) = 0`. Then we define
 
             .. math::
 
