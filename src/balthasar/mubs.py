@@ -105,14 +105,11 @@ class MUBs():
             Returns:
                 The value of :math:`\Phi(a, b)`.
 
-            Handles every case: single- and multiple-qubit and qudit. 
-            For qubit cases the phase is expressed as a number. For qudit
-            cases the phase is returned as a power of the pth root of unity.
             Currently, the phase functions are expressed as follows:
 
             .. math::
 
-              \Phi(\\alpha, \\beta) = (-1)^f(\\alpha \\beta)i^{\\text{tr}(\\alpha \\beta)}
+              \Phi(\\alpha, \\beta) = (-1)^{f(\\alpha \\beta)}i^{\\text{tr}(\\alpha \\beta)}
 
             where :math:`f(x)` is a recursively defined polynomial which we
             implement separately in rec_p.
@@ -123,21 +120,13 @@ class MUBs():
                 return 1j ** (a * b).prim_power
             else: 
                 poly_res = self.rec_p(self.n, a * b)
-                m1_exponent = 0
 
-                # We need to convert the result of the into an integer.
-                # If it is element 0 map to int 0, 1 then map to int 1.
-                # We can't just use the trace for this because the trace of 1
-                # is not 1 in every field.
-                if poly_res == self.field[0]:
-                    m1_exponent = 0
-                elif poly_res == self.field[-1]:
-                    m1_exponent = 1
-                else:
+                if poly_res == None:
                     print("Error evaluating recursive polynomial.")
                     print("Result was not 0 or 1.")
+                    return
 
-                return ((-1) ** m1_exponent) * (1j ** tr(a * b))
+                return ((-1) ** poly_res) * (1j ** tr(a * b))
         else: # Qudits
             if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
                 prefactor = (self.twoinv * a * b).prim_power
@@ -155,8 +144,8 @@ class MUBs():
             Then we define
 
             .. math::
-            
-              f_{m+1}(x) = (f_m - f_{m-1})(x^2) + x^{2^m + 1) + f_m(x)
+
+                f_m (x) = \sum_{i=1}^{m-1} \sum_{j=0}^{i-1} x^{2^i + 2^j} 
 
             Args:
                 m (int): The level of recursion (this should start as the
@@ -165,16 +154,29 @@ class MUBs():
 
             Returns:
                 The value of :math:`f_m(x)` as defined above. This will be a
-                field element and is either 0 or 1.
+                field element and is either 0 or 1. As the output of the 
+                polynomial should be an integer rather than a FieldElement, the
+                phase function phi contains some code to make this conversion.
         """
 
         # Base case f_0 (x) = f_1(x) = 0
         if m == 0 or m == 1:
-            return self.field[0] 
-
+            return 0
         else:
-            return self.rec_p(m - 1, pow(x, 2)) - self.rec_p(m - 2, pow(x, 2)) \
-                + pow(x, pow(2, m - 1) + 1) + self.rec_p(m - 1, x)
+            res = self.field[0]
+
+            # Compute the value using the closed form of the polynomial
+            for i in range(1, m):
+                for j in range(i):
+                    res += pow(x, pow(2, i) + pow(2, j))
+
+            if res == self.field[0]:
+                return 0
+            elif res == self.field[-1]:
+                return 1
+            else:
+                return None
+
 
 
     def build_operator_table(self):
