@@ -273,14 +273,19 @@ class WignerFunction():
             plt.yticks(range(0, len(W)))
             ax1.set_xticklabels(pm_basis)
             ax1.set_yticklabels(comp_basis)
+#        plt.gca().set_xticks([])
+#        plt.gca().set_yticks([])
         
-        plt.gca().set_zlim([0, dz.max() + 0.0001])
-        plt.tick_params(axis='both', labelsize=7)
+        plt.gca().set_zlim([dz.min() - 0.01, dz.max() + 0.01])
+        plt.tick_params(axis='x', labelsize=7)
+        plt.tick_params(axis='y', labelsize=7)
+        plt.tick_params(axis='z', labelsize=16)
+        ax1.locator_params(nbins=6, axis='z')
 
         plt.tight_layout()
 
         if filename == "":
-          plt.show()
+            plt.show()
         else:
             plt.savefig(filename, dpi=1200, bbox_inches='tight')
 
