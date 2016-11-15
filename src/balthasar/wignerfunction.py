@@ -276,7 +276,11 @@ class WignerFunction():
 #        plt.gca().set_xticks([])
 #        plt.gca().set_yticks([])
         
-        plt.gca().set_zlim([dz.min() - 0.01, dz.max() + 0.01])
+        if dz.min() < 0:
+            plt.gca().set_zlim([dz.min() - 0.01, dz.max() + 0.01])
+        else:
+            plt.gca().set_zlim([0, dz.max() + 0.01])
+
         plt.tick_params(axis='x', labelsize=7)
         plt.tick_params(axis='y', labelsize=7)
         plt.tick_params(axis='z', labelsize=16)
@@ -288,4 +292,44 @@ class WignerFunction():
             plt.show()
         else:
             plt.savefig(filename, dpi=1200, bbox_inches='tight')
+
+
+    def kz_nonclassicality(self, state):
+        """ Compute the Kenfack-Zyczkowski non-classicality.
+
+            https://arxiv.org/pdf/quant-ph/0406015.pdf
+
+            For continuous systems, Kenfack and Zyczkowski define an indicator
+            of nonclassicality as twice the volume of the negative portion
+            of the Wigner function. This generalizes very easily to discrete
+            systems, so let us define a measure of nonclassicality 
+            :math:`\delta(\psi)` as:
+
+            .. math::
+
+                \delta(\psi) = \sum_{\\alpha, \\beta} |W_\psi(\\alpha, \\beta) | - W_\psi(\\alpha, \\beta)
+
+            where the sum is over all elements in the finite field (i.e. all of
+            the phase space), and :math:`W` is the Wigner function of the 
+            quantum state :math:`\psi`.
+
+            Args:
+                state (np.array): A quantum state. Can be either a vector or density matrix.
+            
+            Returns:
+                The nonclassicality of a state, as given by twice the 'volume'
+                of the negative portions of the Wigner function.
+        """
+
+        # First we need to compute the Wigner function
+        W = self.compute_wf(state)
+
+        nonc = 0
+
+        for i in range(len(W)):
+            for j in range(len(W)):
+                nonc += abs(W[i][j]) - W[i][j]
+
+        return nonc
+
 
