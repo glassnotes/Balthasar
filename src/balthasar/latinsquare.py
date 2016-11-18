@@ -1,3 +1,14 @@
+#!/usr/bin/python                                                                  
+# -*- coding: utf-8 -*-                                                            
+#                                                                                  
+# latinsquare.py: A class for making Latin squares. 
+#                                                                                  
+# © 2016 Olivia Di Matteo (odimatte@uwaterloo.ca)                                  
+#                                                                                  
+# This file is part of the project Balthasar.                                      
+# Licensed under BSD-3-Clause                                                      
+# 
+
 import numpy as np
 
 from pynitefields import *

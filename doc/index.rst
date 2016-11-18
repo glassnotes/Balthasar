@@ -6,16 +6,13 @@
 Welcome to balthasar's documentation!
 =====================================
 
-This documentation is a work in progress.
-
-Contents:
-
 .. toctree::
     :maxdepth: 2
 
     intro
     tutorial
     classes/index
+    references
 
 Indices and tables
 ==================

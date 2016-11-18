@@ -1,3 +1,14 @@
+#!/usr/bin/python                                                                  
+# -*- coding: utf-8 -*-                                                            
+#                                                                                  
+# curve.py: A class for curves over finite fields in discrete phase space.
+#                                                                                  
+# © 2016 Olivia Di Matteo (odimatte@uwaterloo.ca)                                  
+#                                                                                  
+# This file is part of the project Balthasar.                                      
+# Licensed under BSD-3-Clause                                                      
+# 
+
 from pynitefields import *
 
 class Curve():

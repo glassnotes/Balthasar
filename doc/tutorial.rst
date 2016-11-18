@@ -1,11 +1,37 @@
 Tutorial
 ************************************
 
+Installation
+====================================
+
+Balthasar is written in Python 3. The following packages are required:
+
+* PyniteFields_
+* numpy
+* matplotlib, libffi, cairocffi 
+
+.. _PyniteFields: https://github.com/glassnotes/PyniteFields
+
+Balthasar can be installed by running::
+
+    python setup.py install
+
+in the main directory of the program.
+
+To generate a webpage version of this Sphinx documentation, one can run::
+
+    make html
+
+from the doc directory. Eventually this documentation will live somewhere 
+online.
+
 General functionality
 ====================================
 
 Below we will go through some of the simple functionality of Balthasar:
 making tables of MUB operators, Latin squares, and discrete Wigner Functions.
+References for the underlying math can be found on the 
+:ref:`references page <references>`.
 
 Mutually unbiased bases
 -------------------------------------
@@ -160,7 +186,7 @@ f({\alpha})`. However, it is also possible to express a curve in the form
 
     f = GaloisField(5)
     cba = Curve([0, 1, 3], f)       # b = a + 3 a 
-    cab = Curve([0, 1, 3], f, True) # a = b + 3 b
+    cab = Curve([0, 1, 3], f, "alpha") # a = b + 3 b
 
 
 Striations

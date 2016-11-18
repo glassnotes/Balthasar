@@ -1,3 +1,14 @@
+#!/usr/bin/python                                                                  
+# -*- coding: utf-8 -*-                                                            
+#                                                                                  
+# mubs.py: A class implementing mutually unbiased bases. 
+#                                                                                  
+# © 2016 Olivia Di Matteo (odimatte@uwaterloo.ca)                                  
+#                                                                                  
+# This file is part of the project Balthasar.                                      
+# Licensed under BSD-3-Clause                                                      
+# 
+
 from functools import reduce
 from operator import mul
 

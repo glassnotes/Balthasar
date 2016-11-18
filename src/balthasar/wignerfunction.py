@@ -1,8 +1,16 @@
-#-*- coding: utf-8 -*-
-
-from pynitefields import *
+#!/usr/bin/python                                                                  
+# -*- coding: utf-8 -*-                                                            
+#                                                                                  
+# wignerfunction.py: A class implementing standard discrete Wigner functions. 
+#                                                                                  
+# © 2016 Olivia Di Matteo (odimatte@uwaterloo.ca)                                  
+#                                                                                  
+# This file is part of the project Balthasar.                                      
+# Licensed under BSD-3-Clause                                                      
+# 
 
 import numpy as np
+from pynitefields import *
 
 class WignerFunction():
     """ Class to store and plot a discrete Wigner function.
@@ -294,8 +302,9 @@ class WignerFunction():
             plt.savefig(filename, dpi=1200, bbox_inches='tight')
 
 
+    """ 
     def kz_nonclassicality(self, state):
-        """ Compute the Kenfack-Zyczkowski non-classicality.
+            Compute the Kenfack-Zyczkowski non-classicality.
 
             https://arxiv.org/pdf/quant-ph/0406015.pdf
 
@@ -319,9 +328,9 @@ class WignerFunction():
             Returns:
                 The nonclassicality of a state, as given by twice the 'volume'
                 of the negative portions of the Wigner function.
-        """
+        
 
-        # First we need to compute the Wigner function
+         First we need to compute the Wigner function
         W = self.compute_wf(state)
 
         nonc = 0
@@ -331,5 +340,6 @@ class WignerFunction():
                 nonc += abs(W[i][j]) - W[i][j]
 
         return nonc
+    """
 
 

@@ -1,3 +1,14 @@
+#!/usr/bin/python                                                                  
+# -*- coding: utf-8 -*-                                                            
+#                                                                                  
+# striations.py: A class to implement striations in the affine plane. 
+#                                                                                  
+# © 2016 Olivia Di Matteo (odimatte@uwaterloo.ca)                                  
+#                                                                                  
+# This file is part of the project Balthasar.                                      
+# Licensed under BSD-3-Clause                                                      
+# 
+
 from pynitefields import *
 from balthasar.curve import Curve
 

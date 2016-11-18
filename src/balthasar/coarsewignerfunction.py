@@ -1,8 +1,20 @@
-from pynitefields import *
-from balthasar.wignerfunction import WignerFunction
-import numpy as np
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# coarsewignerfunction.py: A class for Coarse-grained Wigner functions
+#
+# © 2016 Olivia Di Matteo (odimatte@uwaterloo.ca)
+#
+# This file is part of the project Balthasar.
+# Licensed under BSD-3-Clause
+#
 
 from itertools import product 
+
+import numpy as np
+from pynitefields import *
+
+from balthasar.wignerfunction import WignerFunction
 
 class CoarseWignerFunction(WignerFunction):
     """ Class to store and plot a coarse-grained discrete Wigner function.
