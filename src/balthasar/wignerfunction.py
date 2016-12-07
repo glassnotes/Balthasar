@@ -258,7 +258,7 @@ class WignerFunction():
             comp_basis = []
             pm_basis = []
             for coset in self.cosets:
-                c_labs = ["".join([str(x) for x in el.exp_coefs]) for el in coset]
+                c_labs = ["".join([str(x) for x in el.sdb_coefs]) for el in coset]
                 pm = [b.replace('0', '+').replace('1', '\u2013') for b in c_labs]
 
                 
