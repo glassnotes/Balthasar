@@ -237,7 +237,11 @@ class CoarseWignerFunction(WignerFunction):
 
         for alpha in self.field:
             # Using the gchar here allows us to consider qubits AND qudits
-            l = [gchar(self.cosets[0][i] * alpha).eval() for i in range(len(self.cosets[0]))]
+            l = []
+            if self.field.p == 2:
+                l = [gchar(self.cosets[0][i] * alpha) for i in range(len(self.cosets[0]))]
+            else:
+                l = [gchar(self.cosets[0][i] * alpha).eval() for i in range(len(self.cosets[0]))]
             if not np.isclose([sum(l)], [0])[0]:
                 survivors.append(alpha.prim_power)
 
