@@ -233,34 +233,27 @@ class CoarseWignerFunction(WignerFunction):
             This will be a subset of the fine-grained displacement operators
             which 'survive' the sum of eq. x in our paper.
         """
-        coarse_D = {}
+        survivors = []
 
-        if self.field.p == 2:
-            survivors = []
+        for alpha in self.field:
+            # Using the gchar here allows us to consider qubits AND qudits
+            l = [gchar(self.cosets[0][i] * alpha).eval() for i in range(len(self.cosets[0]))]
+            if not np.isclose([sum(l)], [0])[0]:
+                survivors.append(alpha.prim_power)
 
-            for alpha in self.field:
-                l = [(-1) ** tr(self.cosets[0][i] * alpha) \
-                    for i in range(len(self.cosets[0]))]
-                if sum(l) != 0:
-                    survivors.append(alpha.prim_power)
+        # Collect the surviving operators into a table
+        # Note that the MUB table does not contain identity operators
+        # at the beginning of each row - thus, we will have to take only 
+        # the non-zero survivors, and change the index by -1.
+        surviving_ops = {}
+        for slope in self.subfield:
+            table_row = self.mubs.table[slope.prim_power]
+            surviving_ops[slope.prim_power] = \
+                [table_row[x-1][0] for x in survivors[1:]]
 
-            # Collect the surviving operators into a table
-            # Note that the MUB table does not contain identity operators
-            # at the beginning of each row - thus, we will have to take only 
-            # the non-zero survivors, and change the index by -1.
-            surviving_ops = {}
-            for slope in self.subfield:
-                table_row = self.mubs.table[slope.prim_power]
-                surviving_ops[slope.prim_power] = \
-                    [table_row[x-1][0] for x in survivors[1:]]
-
-            # Infinite slope case
-            infty_row = self.mubs.table[-1]
-            surviving_ops["inf"] = [infty_row[x-1][0] for x in survivors[1:]]
-
-        else:
-            print("Sorry, qudit coarse-graining not currently implemented.")
-            return None
+        # Infinite slope case
+        infty_row = self.mubs.table[-1]
+        surviving_ops["inf"] = [infty_row[x-1][0] for x in survivors[1:]]
 
         return surviving_ops 
 
