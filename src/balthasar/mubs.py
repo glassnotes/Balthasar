@@ -289,7 +289,7 @@ class MUBs():
             X = np.array([[0, 1], [1, 0]]) # X
             Z = np.array([[1, 0], [0, -1]]) # Z
         else:
-            # Diagonal X, thanks to 
+            # X, thanks to 
             # SO questions/10936767/rearranging-matrix-elements-with-numpy
             perm_order = [self.p - 1] + [x for x in range(self.p - 1)] 
             X = I[perm_order, :]
@@ -323,8 +323,15 @@ class MUBs():
                 for idx in range(len(x)):
                     # The Z portion must be treated separately because of almost sdb
                     z_exp = z[idx]
+
+                    # Get the inverses of the SDB norms -> Need the prime field
+                    prime_f = GaloisField(self.p)
+                    sdb_norm_inverses = []
+                    for el in self.field.sdb_norms:
+                        sdb_norm_inverses.append(prime_f[el].inv().prim_power)
+
                     if self.n > 1:
-                        z_exp = (z_exp * self.field.sdb_norms[idx]) % self.p
+                        z_exp = (z_exp * sdb_norm_inverses[idx]) % self.p
 
                     if z_exp == 0 and x[idx] == 0: # Both coefs 0
                         op.append("I") # Tensor factor is identity
