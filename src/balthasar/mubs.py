@@ -326,12 +326,9 @@ class MUBs():
 
                     # Get the inverses of the SDB norms -> Need the prime field
                     prime_f = GaloisField(self.p)
-                    sdb_norm_inverses = []
-                    for el in self.field.sdb_norms:
-                        sdb_norm_inverses.append(prime_f[el].inv().prim_power)
 
                     if self.n > 1:
-                        z_exp = (z_exp * sdb_norm_inverses[idx]) % self.p
+                        z_exp = (z_exp * self.field.sdb_norms[idx]) % self.p
 
                     if z_exp == 0 and x[idx] == 0: # Both coefs 0
                         op.append("I") # Tensor factor is identity
