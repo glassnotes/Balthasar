@@ -57,7 +57,7 @@ class MUBs():
     """
 
     def __init__(self, f, **kwargs):
-        if f.is_sdb() is False:
+        if f.n > 1 and f.is_sdb is False:
             print("Warning - you have passed a finite field whose \
                     expansion coefficients are not represented in \
                     the self-dual basis.")
@@ -83,10 +83,9 @@ class MUBs():
             if self.n == 1:
                 self.twoinv = self.field[2].inv()
             else: # Use polynomial basis expansion to find 2
-                field_polybasis = GaloisField(f.p, f.n, f.coefs)
-                for el in field_polybasis:
-                  if el.exp_coefs == ([2] + ([0] * (self.n -1))): 
-                    self.twoinv = el.inv()
+                for el in self.field: 
+                    if el.exp_coefs == ([2] + ([0] * (self.n -1))): 
+                        self.twoinv = self.field[el.inv().prim_power]
 
         # Deal with the keyword arguments
         # Set the curves, default to Desarguesian bundle if nothing passed in 
@@ -134,22 +133,23 @@ class MUBs():
                 poly_res = self.f_m(self.n, a * b)
 
                 if poly_res == None:
-                    print("Error evaluating recursive polynomial.")
+                    print("Error evaluating phase polynomial.")
                     print("Result was not 0 or 1.")
                     return
 
                 return ((-1) ** poly_res) * (1j ** tr(a * b))
         else: # Qudits
             if self.n == 1: # Single qudit case, w ^ (2^-1 ab)
-                prefactor = (self.twoinv * a * b).prim_power
+                prefactor = (-1) * (self.twoinv * a * b).prim_power
                 return pow(self.w, prefactor) 
             else: # Multiple qudits
-                return gchar(self.twoinv * a * b)
+                what_to_trace = (self.field[0] - self.field[-1]) * self.twoinv * a * b
+                return gchar(what_to_trace)
 
 
     def f_m(self, m, x):
         """ A phase factor which ensures our displacement operators
-            sum to proper projectors.
+            sum to proper projectors for qubit systems.
 
             This portion of the phase is a polynomial over field elements
             We let :math:`f_0(x) = f_1(x) = 0`. Then we define
@@ -289,20 +289,20 @@ class MUBs():
             X = np.array([[0, 1], [1, 0]]) # X
             Z = np.array([[1, 0], [0, -1]]) # Z
         else:
-            # Diagonal X, thanks to 
+            # X, thanks to 
             # SO questions/10936767/rearranging-matrix-elements-with-numpy
             perm_order = [self.p - 1] + [x for x in range(self.p - 1)] 
             X = I[perm_order, :]
 
             # Diagonal generalized Z
-            powers_of_w = [pow(self.w, i).eval() for i in range(self.dim)]
+            powers_of_w = [pow(self.w, i).eval() for i in range(self.p)]
             np.fill_diagonal(Z, powers_of_w)
 
         # Now it's time to actually build the tuples of the operator table
         for curve in self.curves:
             row = [] # Each curve produces a different row of the table
             for point in curve: # (a, b)
-                op= []
+                op = []
                 op_mats = []
 
                 a, b = point[0], point[1]
@@ -311,28 +311,44 @@ class MUBs():
                     continue # We ignore the identity
 
                 phase = self.phi(a, b)
-                z = a.exp_coefs # Expansion of the Z part
-                x = b.exp_coefs # Expansion of the X part
+
+                # Get the expansion coefficients in the sdb if power of prime.
+                if self.n > 1:
+                    z = a.sdb_coefs 
+                    x = b.sdb_coefs
+                else:
+                    z = a.exp_coefs
+                    x = b.exp_coefs
 
                 for idx in range(len(x)):
-                    if z[idx] == 0 and x[idx] == 0: # Both coefs 0
+                    # The Z portion must be treated separately because of almost sdb
+                    z_exp = z[idx]
+
+                    # Get the inverses of the SDB norms -> Need the prime field
+                    prime_f = GaloisField(self.p)
+
+                    if self.n > 1:
+                        z_exp = (z_exp * self.field.sdb_norms[idx]) % self.p
+
+                    if z_exp == 0 and x[idx] == 0: # Both coefs 0
                         op.append("I") # Tensor factor is identity
-                    elif z[idx] == 0 and x[idx] != 0:
+                    elif z_exp == 0 and x[idx] != 0:
                         op.append("X" + ("" if x[idx] == 1 else str(x[idx])))
-                    elif z[idx] != 0 and x[idx] == 0:
-                        op.append("Z" + ("" if z[idx] == 1 else str(z[idx])))
+                    elif z_exp != 0 and x[idx] == 0:
+                        op.append("Z" + ("" if z_exp == 1 else str(z_exp)))
                     else:
-                        op.append("Z" + ("" if z[idx] == 1 else str(z[idx])) + \
+                        op.append("Z" + ("" if z_exp == 1 else str(z_exp)) + \
                             "X" + ("" if x[idx] == 1 else str(x[idx])))
 
                     if self.matrices:
                         # Matrix for this chunk of the tensor product
-                        Z_part = np.linalg.matrix_power(Z, z[idx])
+                        # Recall that for qudit systems we need to take into account the
+                        # almost self-dual extra coefficient on the first Z. 
+                        Z_part = np.linalg.matrix_power(Z, z_exp) 
                         X_part = np.linalg.matrix_power(X, x[idx])
                         op_mats.append(np.dot(Z_part, X_part))
                           
                 if self.matrices:
-                    # Tensor together all the matrices if the user wants it
                     matrix_op = reduce(np.kron, op_mats)
                     row.append( (op, phase, matrix_op) )
                 
