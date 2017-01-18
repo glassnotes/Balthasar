@@ -51,9 +51,6 @@ class MUBs():
                             with the operators. If set to false, only the 
                             string representations of the operators is computed.
 
-        Currently, class MUBs fully supports only 
-        qubit systems (i.e. systems of dimension :math:`2^n`).
-         
     """
 
     def __init__(self, f, **kwargs):
@@ -159,8 +156,7 @@ class MUBs():
                 f_m (x) = \sum_{i=1}^{m-1} \sum_{j=0}^{i-1} x^{2^i + 2^j} 
 
             Args:
-                m (int): The level of recursion (this should start as the
-                         number of qubits).
+                m (int): The number of qubits.
                 x (FieldElement): The argument of the function.
 
             Returns:

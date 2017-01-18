@@ -53,8 +53,8 @@ dim8_mubs.print()
 ### Wigner functions
 
 One of the main purposes for writing Balthasar was to compute Wigner functions 
-in discrete phases space. A Wigner function can be generated using a table of 
-MUBs expressed in the self-dual basis. A Wigner function can be computed from 
+in discrete phase space. A Wigner function can be generated using a table of 
+MUBs expressed in a self-dual basis. A Wigner function can be computed from 
 either a state vector or a density matrix.
 
 ```
@@ -71,20 +71,19 @@ wf_bell = my_wf.compute_wf(state) # Compute the WF of a state
 my_wf.plot(state) # Plot the WF in 3d
 ```
 
-### Coarse-grained Wigner functions
+### Coarse-graining the Wigner function
 
 One of the primary reasons for putting together Balthasar was to
 make it easy for researchers to make use of the procedure we present
 in our recent paper [citation coming soon!]. A coarse Wigner function
 can be created by specifying an existing fine-grained function, and a 
 subfield. Coarse-grained functions and plots can then be computed in the
-same manner as normal Wignerfunctions. Furthermore, a by-product of 
+same manner as normal Wigner functions. Furthermore, a by-product of 
 coarse-graining is a subset of the displacement operators; these are
 stored and can be easily displayed as in the example below.
 
 ```
-# Create MUBs in previous example
-
+# Create a 'big' field, and a 'small', coarse field
 field = GaloisField(2, 4, [1, 1, 0, 0, 1]) # Dimension 16
 field.to_sdb([3, 7, 12, 13])
 
@@ -108,8 +107,9 @@ print(coarse_wf.coarse_D) # Output the surviving coarse displacement operators
 
 ### Curves
 Balthasar contains a separate class Curve for manipulating curves over the 
-finite field. A curve _b_(_a_) = _c_<sub>0</sub> + _c_<sub>1</sub> _a_ + ... 
-+ _c_<sub>_k_</sub> _a_<sup>k</sup> where the _c_<sub>i</sub> are elements of 
+finite field. A curve 
+_b_(_a_) = _c_<sub>0</sub> + _c_<sub>1</sub> _a_ + ... + _c_<sub>_k_</sub> _a_<sup>k</sup> 
+where the _c_<sub>i</sub> are elements of 
 the finite field is turned into a Curve object using a list of the form 
 [_c_<sub>0</sub>, _c_<sub>1</sub>, ..., _c_<sub>_k_</sub>] as in the 
 following example:
@@ -141,7 +141,9 @@ c_a0 = Curve([0, 0], f, "alpha") # Curve alpha = 0, the vertical line
 ### Striations
 Striations are the partitions of the affine plane into groups of parallel lines. 
 They are used to build Latin squares (and can make for some very pretty 
-graphics). The _rays_ (the straight lines passing through the origin) are an important set of lines, and are used to construct the MUBs.
+graphics). The _rays_ (the straight lines passing through the origin) are an 
+important set of curves, and are often used to construct MUBs, as they produce
+a valid, complete set of MUBs in every dimension where such a set exists.
 
 The set of striations can be generated using the code snippet below; the first
 element of the striation list is the aforementioned rays.
@@ -173,7 +175,7 @@ l.print() # Prints the Latin square of order 7
 
 ### Advanced functionality
 MUB operators can be constructed from curves in discrete phase space. By default,
-Balthasar will construct MUBs based on lines, however other sets of MUB exist which
+Balthasar will construct MUBs based on rays, however other sets of MUB exist which
 are defined in terms of a bundle of additive, commutative curves.
 One can provide a set of such curves to the constructor, as a list of _d_ + 1
 objects of type Curve.  These curves must satisfy the 

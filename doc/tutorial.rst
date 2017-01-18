@@ -69,11 +69,15 @@ used to coarse-grain Wigner functions and compute new surviving displacement
 operators. Balthasar will produce a warning when you construct MUBs without
 matrices.
 
+Note: currently, computation of the explicit mutually unbiased vectors is
+not implemented. Apologies for the inconvenience; this is certainly on my 
+list of things to do!
+
 Discrete Wigner functions
 -------------------------------------
 
 One of the main purposes for writing Balthasar was to compute Wigner functions 
-in discrete phases space. A Wigner function can be generated using a table of 
+in discrete phase space. A Wigner function can be generated using a table of 
 MUBs expressed in the self-dual basis. A Wigner function can be computed 
 from either a state vector or a density matrix. Here we have an example in
 dimension 4. ::
@@ -101,12 +105,13 @@ dimension 4. ::
 Coarse-grained Wigner functions
 --------------------------------------
 Coarse-graining is the result of a foray into research on incomplete quantum
-tomography. A coarse-grained Wigner function is constructed from a fine-grained
+tomography. Our research is presented in [DMSSLG_]. 
+A coarse-grained Wigner function is constructed from a fine-grained
 one by aggregating the kernel (point) operators over a set of cosets of
 the finite field. Much of the procedure for coarse graining has been automated,
 though there are some tunable parameters. 
 
-Let us begin with a simple set up:::
+Let us begin with a simple set up: ::
 
     # We will coarse grain a dim 16 system to a dim 4 one
     f16 = GaloisField(2, 4, [1, 1, 0, 0, 1])
@@ -142,6 +147,12 @@ to compute and plot Wigner functions like normal. ::
     coarse_wf.compute_wf(state)
     coarse_wf.plot(state)
 
+Finally, as per [DMSSLG_], coarse-graining also produces a subset of the displacement
+operators which we purport can be used as measurement settings in an incomplete 
+tomography scheme. These operators are accessible via the variable coarse_D in the CoarseWignerFunction ::
+
+    print(coarse_wf.coarse_D)
+
 
 Advanced functionality
 =======================================
@@ -150,14 +161,14 @@ The remaining section of the tutorial pertains more to working with the
 structure of the underlying phase space than to the structures built on top
 of it. 
 
-In general, the set of 'standard' MUBs is associated to a bundle of linear
-curves of the form :math:`{\beta} = \lambda {\alpha}`. These are called the 
+In general, the set of 'standard' MUBs is associated to a bundle of lines, called rays,
+of the form :math:`{\beta} = \lambda {\alpha}`. These are also called 
 Desarguesian curves. However, there exist other sets of MUBs associated to 
 different sets of curves. In most cases, these are unitarily equivalent to 
 those of the Desarguesian set, but they may have different entanglement structures.
 
 In what follows, we will discuss how to generate MUB tables using different
-sets of curves. To these curves we can also plot their striations (sets of
+sets of curves. For these curves we can also plot their striations (sets of
 parallel lines), and generate their associated Latin squares.
 
 Curves
@@ -193,20 +204,18 @@ Striations
 -----------------------------------
 Striations are the partitions of the affine plane into groups of parallel lines. 
 They are used to build Latin squares and MUBs, and also to compute the point 
-operators in discrete phase space for the Wigner function under Wootters' 
-quantum net WF formulation. We are no longer using this formalism, but the 
+operators in discrete phase space for the Wigner function under the 
+quantum net WF formulation found in [GHW_]. We are no longer using this formalism, but the 
 striations are nevertheless useful to see, in particular when coarse-graining
 Wigner Functions (where lines from the same striation are bundled
 together and turned into thick lines). 
 
-The set of striations can be generated using the code snippet below. Note that
-these striations are linear. The striations are stored as a list, with
-the slopes in order, and the infinite slope last. 
+The set of striations of the rays :math:`{\beta} = f({\alpha})` can be generated using 
+the code snippet below. The striations are stored as a list, with
+the slopes in order of powers of the primitive element of the field, with the infinite slope last. 
 
 You can view a striation graphically by using the plot function and passing 
-in an index. Striations are indexed by their slope, from 0 through each field 
-element to 1, and then the last (-1) striation is the vertical lines with 
-infinite slope. ::
+in an index representing the desired power of the primitive element (and -1 for the vertical lines). ::
 
     f = GaloisField(2, 2, [1, 1, 1])
     s = Striations(f)
@@ -228,7 +237,7 @@ with complete sets of Latin squares. These Latin squares have a special property
 that of being a complete, mutually orthogonal set. Some unitary transformations 
 on these MUBs sometimes lead to a new set of mutually orthogonal Latin squares
 which is isomorphic to the first. These relationships are discussed in detail
-in previous work, [cite arxiv here].
+in previous work, [GDMKdG_].
 
 To generate a Latin square in Balthasar, one must simply pass it a curve 
 over some finite field. ::
@@ -245,7 +254,7 @@ MUBs and curves
 By default, MUBs will be constructed with the set of Desarguesian curves.
 However, we can specify a set of d + 1 curves with which to produce MUBs.
 We show here an example in dimension 4. The set of curves is taken from
-[cite Andrei's work]. ::
+[KRBSS07_]. ::
 
     f = GaloisField(2, 2, [1, 1, 1])
 
@@ -253,8 +262,17 @@ We show here an example in dimension 4. The set of curves is taken from
     c2 = Curve([0, f[3], f[3]], f) # beta = alpha + alpha^2
     c3 = Curve([0, f[1], f[3]], f) # beta = sigma alpha + alpha^2
     c4 = Curve([0, f[2], f[3]], f) # beta = sigma^2 alpha + alpha^2
-    c5 = Curve([0, 0], f, True)    # alpha = 0 
+    c5 = Curve([0, 0], f, "alpha")    # alpha = 0 
     
     curves = [c1, c2, c3, c4, c5]
 
     some_mubs = MUBs(f, curves)
+
+
+.. _KSSdG: http://iopscience.iop.org/article/10.1088/0305-4470/38/12/015/meta
+.. _RBKSS: http://journals.aps.org/pra/abstract/10.1103/PhysRevA.72.062310
+.. _KRBSS09: http://www.sciencedirect.com/science/article/pii/S0003491608001541
+.. _KRBSS07: http://iopscience.iop.org/article/10.1088/1751-8113/40/14/014/meta
+.. _GHW: http://journals.aps.org/pra/abstract/10.1103/PhysRevA.70.062101
+.. _GDMKdG: http://iopscience.iop.org/article/10.1088/1751-8113/47/43/435303/meta
+.. _DMSSLG: 

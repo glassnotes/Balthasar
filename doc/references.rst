@@ -21,6 +21,10 @@ Discrete Wigner functions:
 
 * [GHW_] K.S. Gibbons, M.J. Hoffman, W.K. Wootters (2004) Phys. Rev. A **70** 062101
 
+Coarse-grained Wigner functions:
+
+* [DMSSLG_] O. Di Matteo, L. L. Sánchez-Soto, G. Leuchs, M. Grassl (2017) [forthcoming]
+
 How Latin squares fit in with this:
 
 * [GDMKdG_] M. Gaeta, O. Di Matteo, A.B. Klimov, H. de Guise (2014) J. Phys. A: Math. Theor. **47** 435303
