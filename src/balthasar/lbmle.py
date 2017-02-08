@@ -10,7 +10,6 @@
 # Licensed under BSD-3-Clause                                                      
 # 
 
-
 import numpy as np
 from pynitefields import *
 
@@ -35,11 +34,14 @@ class LBMLE():
 
     """
 
-    def __init__(self, mubs):
+    def __init__(self, mubs, eigenvectors):
         """ Initialize a least-bias MLE container.
 
             Arguments:
                 mubs: The set of MUBs in which the system is measured.
+                eigenvectors: The MUBs in vector form. This is temporary,
+                              until I get the MUBs actually generating properly 
+                              within Balthasar.
         """
         self.mubs = mubs
         self.p = mubs.p
@@ -47,8 +49,22 @@ class LBMLE():
         self.dim = mubs.dim
         
         # Construct the projector versions of the MUB vectors.
-        self.projectors = generate_projectors(self.mubs) 
+        self.projectors = self.generate_projectors(eigenvectors) 
     
+
+    def generate_projectors(self, eigenvectors):
+        """ Converts a set of vectors into project form.
+            Keeps order/format the same.
+        """
+        projectors = []
+    
+        for basis in eigenvectors:
+            projectors_this_basis = []
+            for vector in basis:
+                projectors_this_basis.append(np.outer(vector, np.conj(vector)))
+            projectors.append(projectors_this_basis)
+        return projectors
+        
 
     def estimate(self, bases, freqs, **kwargs):
         """ Perform least-bias MLE tomography. 
@@ -58,7 +74,10 @@ class LBMLE():
                               or -1 for infinite slope) of the bases in which measurements
                               were done. 
                 freqs (list): Frequency counts of the measurements done w.r.t the 
-                              specified bases. 
+                              specified bases. The order of the frequencies *must*
+                              be the same as the order of the indices of the bases, 
+                              otherwise there will be a mismatch with the data and
+                              the reconstruction will be incorrect.
 
             Keyword Args:
                 mu (double): A parameter to tune the estimation. Defaults to 1e-4.
@@ -67,10 +86,15 @@ class LBMLE():
             Returns:
                 An estimate for a density matrix that best fits the provided data. 
         """
+    
+        # Make sure that frequencies are provided for every basis measured
+        if len(bases) != len(freqs):
+            print("Error, must provide frequency data for all bases measured.")
+            return
 
         # Go through the keyword arguments and set mu and eps if required.
         mu = 1e-4
-        eps = 1e-4
+        eps = 0.1 
 
         if "mu" in kwargs:
             mu = kwargs["mu"]
@@ -78,8 +102,20 @@ class LBMLE():
             eps = kwargs["eps"]
 
         # Separate the bases out into measured and unmeasured
-        meas_bs = [projectors[x] if x in bases for x in range(self.dim + 1)]
-        unmeas_bs [projectors[x] if x not in bases for x in range(self.dim + 1)]
+        meas_bs = []
+        unmeas_bs = []
+
+        for x in range(self.dim + 1):
+            if x in bases:
+                meas_bs.append(self.projectors[x])
+            else:
+                unmeas_bs.append(self.projectors[x])
+
+        # Handle the vertical slopes separately
+        """if -1 in bases:
+            meas_bs.append(self.projectors[-1])
+        else:
+            unmeas_bs.append(self.projectors[x])"""
 
         # Begin with the initial state, the maximally mixed state
         rho_0 = (1.0 / self.dim) * np.eye(self.dim)
@@ -88,7 +124,7 @@ class LBMLE():
         n = 1
 
         # Iterate
-        while (n < 1000):
+        while (n < 10000):
             ########################################################
             #                    Compute W(rho)
             # I might eventually put this in a separate method, but
@@ -110,49 +146,53 @@ class LBMLE():
                     prefactor = p_num / p_denom
 
                     term_1 = term_1 + (prefactor * this_projector)
-            
-            # Compute the second sum, which is over all the unmeasured bases.
-            for basis_idx in range(len(unmeas_bs)):
-                for proj_idx in range(len(unmeas_bs[basis_idx])):
-                    this_projector = unmeas_bs[basis_idx][proj_idx]
 
-                    prefactor = log(np.trace(np.dot(rho_n, this_projector)))
+            # If there are no unmeasured basis, do nothing
+            if len(unmeas_bs) != 0:
+                # Compute the second sum, which is over all the unmeasured bases.
+                for basis_idx in range(len(unmeas_bs)):
+                    for proj_idx in range(len(unmeas_bs[basis_idx])):
+                        this_projector = unmeas_bs[basis_idx][proj_idx]
 
-                    term_2 = term_2 + (prefactor * this_projector)
+                        prefactor = log(np.trace(np.dot(rho_n, this_projector)))
+
+                        term_2 = term_2 + (prefactor * this_projector)
             
     
             # Finally, compute W(rho)
-            W_rho_n = term1 - mu * term2
+            W_rho_n = term_1 - mu * term_2
             ########################################################
 
+            #print("n = " + str(n))
+            #print(rho_n) 
 
             # Check if we've got a good estimate. If the desired accuracy 
             # is satisfied by the most recent rho_n, then we're done. 
             # Return the estimator and the number of steps.
             # If not, increment n and keep going.
-            if check_accuracy(W_rho_n, rho_n):
+            if self.check_accuracy(W_rho_n, rho_n):
                 return rho_n, n 
             else:
                 n += 1
 
-            # Compute the next term in the series. It's a big ugly expression,
-            # so I've separated out a term 'clump', and also the num/denom
-            clump = W_rho_n - np.trace(np.dot(W_rho_n, rho_n)) * np.eye(self.dim)
-            
-            numerator = np.dot(np.eye(self.dim) + eps * clump, \
-                             np.dot(rho_n, np.eye(self.dim) + eps * clump))
-            denominator = 1 + (eps ** 2) * np.trace(np.dot(np.dot(clump, clump), rho_n))
-            rho_np1 = numerator / denominator
+                # Compute the next term in the series. It's a big ugly expression,
+                # so I've separated out a term 'clump', and also the num/denom
+                clump = W_rho_n - np.trace(np.dot(W_rho_n, rho_n)) * np.eye(self.dim)
+                    
+                numerator = np.dot(np.eye(self.dim) + eps * clump, \
+                                 np.dot(rho_n, np.eye(self.dim) + eps * clump))
+                denominator = 1 + (eps ** 2) * np.trace(np.dot(np.dot(clump, clump), rho_n))
 
-            rho_n = rho_np1
+                rho_np1 = numerator / denominator
+                rho_n = rho_np1
 
 
     def check_accuracy(self, W_rho, rho):
         """ Determines if a state estimator is *good enough*.
-
+            For this, use the inf norm as a measure of distance.
         """
-        tol = 1e-5
+        tol = 1e-5 # Set an arbitrary tolerance
         LHS = np.dot(W_rho, rho)
         RHS = np.trace(np.dot(W_rho, rho)) * rho
         
-        return all(np.isclose(LHS, RHS, atol = tol)):
+        return np.linalg.norm(LHS - RHS, np.inf) < tol
