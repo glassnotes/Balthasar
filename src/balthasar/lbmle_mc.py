@@ -117,15 +117,7 @@ class LBMLE_MC():
             these_freqs = [counts[x] / N for x in range(d)]
             freqs.append(these_freqs)
 
-            print("VN probability vector.")
-            print(vn_probs)
-            print("MC probability vector.")
-            print(these_freqs)
-            print() 
-            
-
-
-
+        return freqs
 
 
 
