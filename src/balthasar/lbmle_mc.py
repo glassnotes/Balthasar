@@ -71,6 +71,8 @@ class LBMLE_MC():
 
         # Loop through bases one at a time.
         for basis_idx in bases:
+            #print("Simulating measurement data in basis " + str(basis_idx))
+
             # Check that the user specified valid bases. Note that -1 is a valid option
             # as it corresponds to the "last" basis, i.e. the vertical slope ray.
             if basis_idx not in range(len(self.projectors)) and basis_idx is not -1:

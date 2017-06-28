@@ -102,24 +102,29 @@ class LBMLE():
             eps = kwargs["eps"]
 
         # Separate the bases out into measured and unmeasured
-        meas_bs = []
-        unmeas_bs = []
+        meas_bs_idx = []
+        unmeas_bs_idx = []
 
         for x in range(self.dim):
             if x in bases:
-                meas_bs.append(self.projectors[x])
+                meas_bs_idx.append(x)
             else:
-                unmeas_bs.append(self.projectors[x])
+                unmeas_bs_idx.append(x)
 
         # Handle the vertical slopes separately
         if -1 in bases:
-            meas_bs.append(self.projectors[-1])
+            meas_bs_idx.append(-1)
         else:
-            unmeas_bs.append(self.projectors[-1])
+            unmeas_bs_idx.append(-1)
 
         # Begin with the initial state, the maximally mixed state
         rho_0 = (1.0 / self.dim) * np.eye(self.dim)
         rho_n = rho_0
+
+        """print("Measured bases are ", end = "")
+        print(meas_bs_idx)
+        print("Unmeasured bases are ", end = "")
+        print(unmeas_bs_idx)"""
      
         n = 1
 
@@ -137,22 +142,25 @@ class LBMLE():
 
             # Compute the first sum, which contains the measurement 
             # frequencies and the measured bases
-            for basis_idx in range(len(meas_bs)):
-                for proj_idx in range(len(meas_bs[basis_idx])):
-                    this_projector = meas_bs[basis_idx][proj_idx]
+            freq_idx = 0 # The frequencies present correspond only to the measured bases so there are
+                         # less of them. Keep a separate counter so we take the right ones.
+            for basis_idx in meas_bs_idx:
+                for proj_idx in range(self.dim):
+                    this_projector = self.projectors[basis_idx][proj_idx]
 
-                    p_num = freqs[basis_idx][proj_idx] 
+                    p_num = freqs[freq_idx][proj_idx] 
                     p_denom = np.trace(np.dot(rho_n, this_projector))
                     prefactor = p_num / p_denom
 
                     term_1 = term_1 + (prefactor * this_projector)
+                freq_idx += 1
 
             # If there are no unmeasured basis, do nothing
-            if len(unmeas_bs) != 0:
+            if len(unmeas_bs_idx) != 0:
                 # Compute the second sum, which is over all the unmeasured bases.
-                for basis_idx in range(len(unmeas_bs)):
-                    for proj_idx in range(len(unmeas_bs[basis_idx])):
-                        this_projector = unmeas_bs[basis_idx][proj_idx]
+                for basis_idx in unmeas_bs_idx:
+                    for proj_idx in range(self.dim):
+                        this_projector = self.projectors[basis_idx][proj_idx]
 
                         prefactor = log(np.trace(np.dot(rho_n, this_projector)))
 
