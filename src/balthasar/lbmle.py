@@ -105,17 +105,17 @@ class LBMLE():
         meas_bs = []
         unmeas_bs = []
 
-        for x in range(self.dim + 1):
+        for x in range(self.dim):
             if x in bases:
                 meas_bs.append(self.projectors[x])
             else:
                 unmeas_bs.append(self.projectors[x])
 
         # Handle the vertical slopes separately
-        """if -1 in bases:
+        if -1 in bases:
             meas_bs.append(self.projectors[-1])
         else:
-            unmeas_bs.append(self.projectors[x])"""
+            unmeas_bs.append(self.projectors[-1])
 
         # Begin with the initial state, the maximally mixed state
         rho_0 = (1.0 / self.dim) * np.eye(self.dim)
@@ -124,7 +124,7 @@ class LBMLE():
         n = 1
 
         # Iterate
-        while (n < 10000):
+        while (n):
             ########################################################
             #                    Compute W(rho)
             # I might eventually put this in a separate method, but

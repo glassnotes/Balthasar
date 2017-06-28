@@ -84,7 +84,7 @@ class LBMLE_MC():
             
             # Compute the probabilities of each measurement using the Born rule,
             # p_i = Tr(state * M_i)
-            vn_probs = [float(np.trace(np.dot(state, projs[x]))) for x in range(d)]
+            vn_probs = [float(np.trace(np.dot(state, projs[x])).real) for x in range(d)]
             
             # Create the MC simulation "range" array. This is the continuous
             # line of the probabilities we use to determine where the particle
