@@ -111,7 +111,7 @@ class LBMLE():
             else:
                 unmeas_bs_idx.append(x)
 
-        # Handle the vertical slopes separately
+        # Handle the vertical slope separately
         if -1 in bases:
             meas_bs_idx.append(-1)
         else:
@@ -141,9 +141,13 @@ class LBMLE():
             term_2 = np.zeros((self.dim, self.dim))
 
             # Compute the first sum, which contains the measurement 
-            # frequencies and the measured bases
-            freq_idx = 0 # The frequencies present correspond only to the measured bases so there are
-                         # less of them. Keep a separate counter so we take the right ones.
+            # frequencies and the measured bases. Note that in theory
+            # the bases may not be in ascending order, however the 
+            # frequencies will be generated in the same order as the 
+            # bases are placed in the list. So create a separate counter
+            # for frequencies to just iterate through them one at a time
+            # as we go through the bases by their slope index.
+            freq_idx = 0 
             for basis_idx in meas_bs_idx:
                 for proj_idx in range(self.dim):
                     this_projector = self.projectors[basis_idx][proj_idx]
